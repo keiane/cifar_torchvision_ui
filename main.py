@@ -153,6 +153,7 @@ def test(epoch, net, testloader, device, criterion):
     #     torch.save(state, './checkpoint/ckpt.pth')
     #     best_acc = acc
 
+# Get names from path with .strip and .remove for redundant files and formatting
 path = "./models"
 dir_list = os.listdir(path)
 dir_list.remove("__init__.py")
@@ -160,7 +161,7 @@ dir_list.remove("__pycache__")
 files = [file.strip(".py") for file in dir_list]
 
 with gr.Blocks() as demo:
-    #ADD CODE HERE
+    # ADD CODE HERE
     with gr.Row():
         gr.Dropdown(files)
 
