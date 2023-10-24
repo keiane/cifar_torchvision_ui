@@ -20,10 +20,10 @@ python main.py --resume --lr=0.01
 | ----------------- | ----------- |
 | Evelyn Atkins              | TBD      |
 | Keiane Balicanta              | TorchVision Model Dropdown      |
-| Henry Conde              | TBD      |
-| Matthew Gerace             | TBD      |
+| Henry Conde              | Attribution Map Visualization      |
+| Matthew Gerace             | Slider for Iterations      |
 | Ethan White             | TBD      |
-| Luke Wilkins              | TBD      |
+| Luke Wilkins              | Adversarial Training      |
 
 ## Accuracy
 | Model             | Acc.        |
