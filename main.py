@@ -152,6 +152,7 @@ def test(epoch, net, testloader, device, criterion):
     #         os.mkdir('checkpoint')
     #     torch.save(state, './checkpoint/ckpt.pth')
     #     best_acc = acc
+    # hi
 
 with gr.Blocks() as demo:
     #ADD CODE HERE
