@@ -18,11 +18,11 @@ python main.py --resume --lr=0.01
 ## Features to Add
 | Name             | Feature      |
 | ----------------- | ----------- |
-| Evelyn Atkins              | TBD      |
+| Ethan White             | Input protection, error messages, & interface documentation      |
+| Evelyn Atkins              | Input protection, error messages, & interface documentation      |
 | Keiane Balicanta              | TorchVision Model Dropdown      |
 | Henry Conde              | Attribution Map Visualization      |
 | Matthew Gerace             | Slider for Iterations      |
-| Ethan White             | TBD      |
 | Luke Wilkins              | Adversarial Training      |
 
 ## Accuracy
