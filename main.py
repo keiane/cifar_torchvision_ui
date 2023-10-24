@@ -157,6 +157,7 @@ def test(epoch, net, testloader, device, criterion):
 with gr.Blocks() as demo:
     #ADD CODE HERE
     with gr.Row():
+        gr.textbox()
 
 if __name__ == '__main__':
     demo.launch()
