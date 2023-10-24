@@ -15,6 +15,7 @@ import argparse
 from models import *
 
 from tqdm import tqdm
+import gradio as gr
 # from utils import progress_bar
 
 def main():
@@ -140,19 +141,22 @@ def test(epoch, net, testloader, device, criterion):
 
     # Save checkpoint.
     acc = 100.*correct/total
-    if acc > best_acc:
-        print('Saving..')
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
-        best_acc = acc
+    # if acc > best_acc:
+    #     print('Saving..')
+    #     state = {
+    #         'net': net.state_dict(),
+    #         'acc': acc,
+    #         'epoch': epoch,
+    #     }
+    #     if not os.path.isdir('checkpoint'):
+    #         os.mkdir('checkpoint')
+    #     torch.save(state, './checkpoint/ckpt.pth')
+    #     best_acc = acc
 
-
+with gr.Blocks() as demo:
+    #ADD CODE HERE
+    with gr.Row():
 
 if __name__ == '__main__':
+    demo.launch()
     main()
