@@ -15,6 +15,10 @@ python main.py
 python main.py --resume --lr=0.01
 ```
 
+| Feature             | Person's Name        |
+| ----------------- | ----------- |
+| TorchVision Model Dropdown              | Keiane Balicanta      |
+
 ## Accuracy
 | Model             | Acc.        |
 | ----------------- | ----------- |
