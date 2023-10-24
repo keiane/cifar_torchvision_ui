@@ -15,6 +15,7 @@ python main.py
 python main.py --resume --lr=0.01
 ```
 
+## Features to Add
 | Name             | Feature      |
 | ----------------- | ----------- |
 | Evelyn Atkins              | TBD      |
