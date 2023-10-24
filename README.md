@@ -15,9 +15,14 @@ python main.py
 python main.py --resume --lr=0.01
 ```
 
-| Feature             | Person's Name        |
+| Name             | Feature      |
 | ----------------- | ----------- |
-| TorchVision Model Dropdown              | Keiane Balicanta      |
+| Evelyn Atkins              | TBD      |
+| Keiane Balicanta              | TorchVision Model Dropdown      |
+| Henry Conde              | TBD      |
+| Matthew Gerace             | TBD      |
+| Ethan White             | TBD      |
+| Luke Wilkins              | TBD      |
 
 ## Accuracy
 | Model             | Acc.        |
