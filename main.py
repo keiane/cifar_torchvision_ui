@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+import gradio as gr
+import wandb
 
 import torchvision
 import torchvision.transforms as transforms
@@ -15,10 +17,10 @@ import argparse
 from models import *
 
 from tqdm import tqdm
-import gradio as gr
 # from utils import progress_bar
 
 def main():
+    wandb.init(entity="henry-conde", project="tutorial")
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -58,7 +60,14 @@ def main():
 
     # Model
     print('==> Building model..')
-    net = ResNet18()
+    
+    net = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights) # Using pretrained ImageNet weights
+    # The two lines below are needed to modify resnet for cifar10
+    num_ftrs = net.fc.in_features # save the number of input features to the output fully connected layer
+    net.fc = torch.nn.Linear(num_ftrs, len(classes)) # modify the number of outputs to reflect the number of out classes
+    
+    # net = torchvision.models.vgg11()
+
     # net = VGG('VGG19')
     # net = PreActResNet18()
     # net = GoogLeNet()
@@ -122,42 +131,42 @@ def train(epoch, net, trainloader, device, optimizer, criterion):
 def test(epoch, net, testloader, device, criterion):
     global best_acc
     net.eval()
-    test_loss = 0
+    test_loss = 0.0
     correct = 0
     total = 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in tqdm(enumerate(testloader)):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = net(inputs)
-            loss = criterion(outputs, targets)
-
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+        # for epoch in range(epoch_total):
+            for batch_idx, (inputs, targets) in tqdm(enumerate(testloader)):
+                inputs, targets = inputs.to(device), targets.to(device)
+                outputs = net(inputs)
+                loss = criterion(outputs, targets)
+                test_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted.eq(targets).sum().item()
+            wandb.log({'epoch': epoch+1, 'loss': test_loss})
+            wandb.log({"acc": correct/total})
 
             # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
-    acc = 100.*correct/total
-    # if acc > best_acc:
-    #     print('Saving..')
-    #     state = {
-    #         'net': net.state_dict(),
-    #         'acc': acc,
-    #         'epoch': epoch,
-    #     }
-    #     if not os.path.isdir('checkpoint'):
-    #         os.mkdir('checkpoint')
-    #     torch.save(state, './checkpoint/ckpt.pth')
-    #     best_acc = acc
-    # hi
+    #acc = 100.*correct/total
+    """
+    if acc > best_acc:
+        print('Saving..')
+        state = {
+            'net': net.state_dict(),
+            'acc': acc,
+            'epoch': epoch,
+        }
+        if not os.path.isdir('checkpoint'):
+            os.mkdir('checkpoint')
+        torch.save(state, './checkpoint/ckpt.pth')
+        best_acc = acc
+        """
 
-with gr.Blocks() as demo:
-    #ADD CODE HERE
-    with gr.Row():
+
 
 if __name__ == '__main__':
-    demo.launch()
     main()
