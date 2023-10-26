@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.models as models
 
 import os
 import argparse
@@ -16,6 +17,7 @@ from models import *
 
 from tqdm import tqdm
 import gradio as gr
+
 # from utils import progress_bar
 
 def main(drop_type):
@@ -57,37 +59,10 @@ def main(drop_type):
 
     # Model
     print('==> Building model..')
-    if drop_type == "resnet":
-        net = ResNet18()
-    elif drop_type == "vgg":
-        net = VGG('VGG19')
-    elif drop_type == "preact_resnet":
-        net = PreActResNet18()
-    elif drop_type == "googlenet":
-        net = GoogLeNet()
-    elif drop_type == "densenet":
-        net = DenseNet121()
-    elif drop_type == "resnext":
-        net = ResNeXt29_2x64d()
-    elif drop_type == "mobilenet":
-        net = MobileNet()
-    elif drop_type == "mobilenetv2":
-        net = MobileNetV2()
-    elif drop_type == "dpn":
-        net = DPN92()
-    elif drop_type == "shufflenet":
-        net = ShuffleNetG2()
-    elif drop_type == "senet":
-        net = SENet18()
-    elif drop_type == "shufflenetv2":
-        net = ShuffleNetV2(1)
-    elif drop_type == "efficientnet":
-        net = EfficientNetB0()
-    elif drop_type == "regnet":
-        net = RegNetX_200MF()
-    elif drop_type == "dla_simple":
-        net = SimpleDLA()
-        
+    net = models_dict.get(drop_type, None)
+    num_ftrs = net.fc.in_features
+    net.fc = torch.nn.Linear(num_ftrs, len(classes))
+    
     net = net.to(device)
 
     if args.resume:
@@ -171,16 +146,21 @@ def test(epoch, net, testloader, device, criterion):
     #     best_acc = acc
     return acc
 
-path = "./models"
-dir_list = os.listdir(path)
-dir_list.remove("__init__.py")
-dir_list.remove("__pycache__")
-files = [file.strip(".py") for file in dir_list]
+models_dict = {
+        "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
+        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT),
+        # "DenseNet": models.densenet(weights=models.DenseNet121_Weights.DEFAULT),
+        # "MobileNet": models.mobilenet(weights=models.MobileNetV2), # ?
+        # "ShuffleNet": models.efficientnet(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT), # ?
+        "GoogLeNet": models.GoogLeNet(weights=models.GoogLeNet_Weights.DEFAULT)
+}
+
+names = list(models_dict.keys())
 
 with gr.Blocks() as demo:
     #ADD CODE HERE
     with gr.Row():
-        inp = gr.Dropdown(files)
+        inp = gr.Dropdown(names)
     with gr.Row():
         out = gr.Textbox(label="Accuracy")
     with gr.Row():
