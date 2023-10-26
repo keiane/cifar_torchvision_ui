@@ -6,6 +6,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
+import torchvision.models as models
+
 import torchvision
 import torchvision.transforms as transforms
 
@@ -18,7 +20,13 @@ from tqdm import tqdm
 import gradio as gr
 # from utils import progress_bar
 
-def main():
+def main(value1,value2,value3,value4):
+    num_epochs = int(value1)
+    learn_batch = int(value2)
+    test_batch = int(value3)
+    optimizer_choose = str(value4)
+    print (optimizer_choose)
+
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -46,19 +54,22 @@ def main():
     trainset = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform_train)
     trainloader = DataLoader(
-        trainset, batch_size=128, shuffle=True, num_workers=2)
+        trainset, batch_size=learn_batch, shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform_test)
     testloader = DataLoader(
-        testset, batch_size=100, shuffle=False, num_workers=2)
+        testset, batch_size=test_batch, shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
             'dog', 'frog', 'horse', 'ship', 'truck')
 
     # Model
     print('==> Building model..')
-    net = ResNet18()
+    # net = ResNet18()
+    net = models.resnet18(weights=models.ResNet18_Weights) # to use pretrained weights
+    num_ftrs = net.fc.in_features
+    net.fc = torch.nn.Linear(num_ftrs, len(classes))
     # net = VGG('VGG19')
     # net = PreActResNet18()
     # net = GoogLeNet()
@@ -84,15 +95,24 @@ def main():
         best_acc = checkpoint['acc']
         start_epoch = checkpoint['epoch']
 
+    SGDopt = optim.SGD(net.parameters(), lr=args.lr,momentum=0.9, weight_decay=5e-4)
+    Adamopt = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                        momentum=0.9, weight_decay=5e-4)
+
+    if optimizer_choose == "SGD":
+        optimizer = SGDopt
+    elif optimizer_choose == "Adam":
+        optimizer = Adamopt
+    print (optimizer)
+
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-    for epoch in range(start_epoch, start_epoch+200):
+    for epoch in range(start_epoch, start_epoch+num_epochs):
         train(epoch, net, trainloader, device, optimizer, criterion)
         test(epoch, net, testloader, device, criterion)
         scheduler.step()
+    return acc
 
 
 # Training
@@ -140,7 +160,9 @@ def test(epoch, net, testloader, device, criterion):
             #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
+    global acc
     acc = 100.*correct/total
+    print (acc)
     # if acc > best_acc:
     #     print('Saving..')
     #     state = {
@@ -154,9 +176,17 @@ def test(epoch, net, testloader, device, criterion):
     #     best_acc = acc
     # hi
 
+list = ["SGD","Adam"]
 with gr.Blocks() as demo:
-    #ADD CODE HERE
     with gr.Row():
+        inp = gr.Slider(label="# of Epochs",minimum=1,maximum=100,step=1,value=1)
+        inp1 = gr.Slider(label="Training Batch Size",minimum=1,maximum=1000,step=1,value=128)
+        inp2 = gr.Slider(label="Testing Batch Size",minimum=1,maximum=1000,step=1,value=100)
+        inp3 = gr.Dropdown(label="Choose Optimizer",choices=list,value="SGD")
+        accuracy = gr.Textbox(label = "Accuracy")
+
+    btn = gr.Button("Import")
+    btn.click(fn=main, inputs=[inp, inp1, inp2, inp3], outputs = [accuracy])
 
 if __name__ == '__main__':
     demo.launch()
