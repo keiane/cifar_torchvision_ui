@@ -18,7 +18,7 @@ from tqdm import tqdm
 import gradio as gr
 # from utils import progress_bar
 
-def main():
+def main(drop_type):
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -26,7 +26,6 @@ def main():
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     # Data
@@ -58,21 +57,37 @@ def main():
 
     # Model
     print('==> Building model..')
-    net = ResNet18()
-    # net = VGG('VGG19')
-    # net = PreActResNet18()
-    # net = GoogLeNet()
-    # net = DenseNet121()
-    # net = ResNeXt29_2x64d()
-    # net = MobileNet()
-    # net = MobileNetV2()
-    # net = DPN92()
-    # net = ShuffleNetG2()
-    # net = SENet18()
-    # net = ShuffleNetV2(1)
-    # net = EfficientNetB0()
-    # net = RegNetX_200MF()
-    # net = SimpleDLA()
+    if drop_type == "resnet":
+        net = ResNet18()
+    elif drop_type == "vgg":
+        net = VGG('VGG19')
+    elif drop_type == "preact_resnet":
+        net = PreActResNet18()
+    elif drop_type == "googlenet":
+        net = GoogLeNet()
+    elif drop_type == "densenet":
+        net = DenseNet121()
+    elif drop_type == "resnext":
+        net = ResNeXt29_2x64d()
+    elif drop_type == "mobilenet":
+        net = MobileNet()
+    elif drop_type == "mobilenetv2":
+        net = MobileNetV2()
+    elif drop_type == "dpn":
+        net = DPN92()
+    elif drop_type == "shufflenet":
+        net = ShuffleNetG2()
+    elif drop_type == "senet":
+        net = SENet18()
+    elif drop_type == "shufflenetv2":
+        net = ShuffleNetV2(1)
+    elif drop_type == "efficientnet":
+        net = EfficientNetB0()
+    elif drop_type == "regnet":
+        net = RegNetX_200MF()
+    elif drop_type == "dla_simple":
+        net = SimpleDLA()
+        
     net = net.to(device)
 
     if args.resume:
@@ -91,8 +106,9 @@ def main():
 
     for epoch in range(start_epoch, start_epoch+200):
         train(epoch, net, trainloader, device, optimizer, criterion)
-        test(epoch, net, testloader, device, criterion)
+        acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
+    return acc
 
 
 # Training
@@ -141,6 +157,7 @@ def test(epoch, net, testloader, device, criterion):
 
     # Save checkpoint.
     acc = 100.*correct/total
+    print(acc)
     # if acc > best_acc:
     #     print('Saving..')
     #     state = {
@@ -152,11 +169,23 @@ def test(epoch, net, testloader, device, criterion):
     #         os.mkdir('checkpoint')
     #     torch.save(state, './checkpoint/ckpt.pth')
     #     best_acc = acc
+    return acc
+
+path = "./models"
+dir_list = os.listdir(path)
+dir_list.remove("__init__.py")
+dir_list.remove("__pycache__")
+files = [file.strip(".py") for file in dir_list]
 
 with gr.Blocks() as demo:
     #ADD CODE HERE
     with gr.Row():
-        gr.textbox()
+        inp = gr.Dropdown(files)
+    with gr.Row():
+        out = gr.Textbox(label="Accuracy")
+    with gr.Row():
+        btn = gr.Button("Run")
+    btn.click(fn=main,inputs=inp,outputs=out)
 
 if __name__ == '__main__':
     demo.launch()
