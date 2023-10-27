@@ -60,8 +60,19 @@ def main(drop_type):
     # Model
     print('==> Building model..')
     net = models_dict.get(drop_type, None)
-    num_ftrs = net.fc.in_features
-    net.fc = torch.nn.Linear(num_ftrs, len(classes))
+
+    # Make list of models containing either classifer or fc functions
+    classifier_models = ['ConvNext_Small', 'ConvNext_Base', 'ConvNext_Large', 'DenseNet', 'EfficientNet_B0', 'MobileNetV2',
+                         'MaxVit', 'MnasNet0_5', 'SqueezeNet', 'VGG19']
+    fc_models = ['GoogLeNet', 'InceptionNetV3', 'RegNet_X_400MF', 'ResNet18', 'ShuffleNet_V2_X0_5']
+
+    # Check dropdown choice for fc or classifier function implementation
+    if net in classifier_models:
+        num_ftrs = net.classifier[-1].in_features
+        net.classifier[-1] = torch.nn.Linear(num_ftrs, len(classes))
+    elif net in fc_models:
+        num_ftrs = net.fc.in_features
+        net.fc = torch.nn.Linear(num_ftrs, len(classes))
     
     net = net.to(device)
 
@@ -147,14 +158,24 @@ def test(epoch, net, testloader, device, criterion):
     return acc
 
 models_dict = {
+        "ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
+        "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
+        "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
+        "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
+        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
+        # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
+        # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
+        "MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
+        "MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
         "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
-        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT),
-        # "DenseNet": models.densenet(weights=models.DenseNet121_Weights.DEFAULT),
-        # "MobileNet": models.mobilenet(weights=models.MobileNetV2), # ?
-        # "ShuffleNet": models.efficientnet(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT), # ?
-        "GoogLeNet": models.GoogLeNet(weights=models.GoogLeNet_Weights.DEFAULT)
+        "RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
+        "ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
+        "SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
+        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
 }
 
+# Store dictionary keys into list for dropdown menu choices
 names = list(models_dict.keys())
 
 with gr.Blocks() as demo:
