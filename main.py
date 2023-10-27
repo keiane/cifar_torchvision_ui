@@ -6,6 +6,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
+import torchvision.models as models
+
 import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
@@ -20,7 +22,12 @@ import gradio as gr
 
 # from utils import progress_bar
 
-def main(drop_type):
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
+    num_epochs = int(epochs_sldr)
+    learn_batch = int(train_sldr)
+    test_batch = int(test_sldr)
+    optimizer_choose = str(optimizer)
+    
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -47,12 +54,12 @@ def main(drop_type):
     trainset = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform_train)
     trainloader = DataLoader(
-        trainset, batch_size=128, shuffle=True, num_workers=2)
+        trainset, batch_size=learn_batch, shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform_test)
     testloader = DataLoader(
-        testset, batch_size=100, shuffle=False, num_workers=2)
+        testset, batch_size=test_batch, shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
             'dog', 'frog', 'horse', 'ship', 'truck')
@@ -85,12 +92,20 @@ def main(drop_type):
         best_acc = checkpoint['acc']
         start_epoch = checkpoint['epoch']
 
+    SGDopt = optim.SGD(net.parameters(), lr=args.lr,momentum=0.9, weight_decay=5e-4)
+    Adamopt = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                        momentum=0.9, weight_decay=5e-4)
+
+    if optimizer_choose == "SGD":
+        optimizer = SGDopt
+    elif optimizer_choose == "Adam":
+        optimizer = Adamopt
+    print (optimizer)
+
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-    for epoch in range(start_epoch, start_epoch+200):
+    for epoch in range(start_epoch, start_epoch+num_epochs):
         train(epoch, net, trainloader, device, optimizer, criterion)
         acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
@@ -142,6 +157,7 @@ def test(epoch, net, testloader, device, criterion):
             #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
+    global acc
     acc = 100.*correct/total
     print(acc)
     # if acc > best_acc:
@@ -178,15 +194,21 @@ models_dict = {
 # Store dictionary keys into list for dropdown menu choices
 names = list(models_dict.keys())
 
+# List of optimizer names
+list = ["SGD","Adam"]
+
 with gr.Blocks() as demo:
-    #ADD CODE HERE
     with gr.Row():
         inp = gr.Dropdown(names)
     with gr.Row():
-        out = gr.Textbox(label="Accuracy")
+        epochs_sldr = gr.Slider(label="# of Epochs",minimum=1,maximum=100,step=1,value=1)
+        train_sldr = gr.Slider(label="Training Batch Size",minimum=1,maximum=1000,step=1,value=128)
+        test_sldr = gr.Slider(label="Testing Batch Size",minimum=1,maximum=1000,step=1,value=100)
+        optimizer = gr.Dropdown(label="Choose Optimizer",choices=list,value="SGD")
     with gr.Row():
-        btn = gr.Button("Run")
-    btn.click(fn=main,inputs=inp,outputs=out)
+        accuracy = gr.Textbox(label = "Accuracy")
+    btn = gr.Button("Run")
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs = [accuracy])
 
 if __name__ == '__main__':
     demo.launch()

@@ -16,13 +16,14 @@ python main.py --resume --lr=0.01
 ```
 
 ## Features to Add
-| Name             | Feature      |
-| ----------------- | ----------- |
-| Evelyn Atkins              | TBD      |
-| Keiane Balicanta and Luke Wilkins              | TorchVision Model Dropdown      |
-| Henry Conde              | Weights and Biases      |
-| Matthew Gerace             | Iteration Slider      |
-| Ethan White             | TBD      |
+| Name                          | Feature      |
+| ----------------------------- | ----------- |
+| Evelyn Atkins and Ethan White | TBD      |
+| Keiane Balicanta              | TorchVision Model Dropdown      |
+| Henry Conde                   | Weights and Biases      |
+| Matthew Gerace                | Iteration Slider      |
+| Luke Wilkins                  | Image Classification |
+
 
 ## Accuracy
 | Model             | Acc.        |
