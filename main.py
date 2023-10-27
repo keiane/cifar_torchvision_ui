@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.models as models
 
 import os
 import argparse
@@ -16,9 +17,10 @@ from models import *
 
 from tqdm import tqdm
 import gradio as gr
+
 # from utils import progress_bar
 
-def main():
+def main(drop_type):
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -26,7 +28,6 @@ def main():
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     # Data
@@ -58,21 +59,21 @@ def main():
 
     # Model
     print('==> Building model..')
-    net = ResNet18()
-    # net = VGG('VGG19')
-    # net = PreActResNet18()
-    # net = GoogLeNet()
-    # net = DenseNet121()
-    # net = ResNeXt29_2x64d()
-    # net = MobileNet()
-    # net = MobileNetV2()
-    # net = DPN92()
-    # net = ShuffleNetG2()
-    # net = SENet18()
-    # net = ShuffleNetV2(1)
-    # net = EfficientNetB0()
-    # net = RegNetX_200MF()
-    # net = SimpleDLA()
+    net = models_dict.get(drop_type, None)
+
+    # Make list of models containing either classifer or fc functions
+    classifier_models = ['ConvNext_Small', 'ConvNext_Base', 'ConvNext_Large', 'DenseNet', 'EfficientNet_B0', 'MobileNetV2',
+                         'MaxVit', 'MnasNet0_5', 'SqueezeNet', 'VGG19']
+    fc_models = ['GoogLeNet', 'InceptionNetV3', 'RegNet_X_400MF', 'ResNet18', 'ShuffleNet_V2_X0_5']
+
+    # Check dropdown choice for fc or classifier function implementation
+    if net in classifier_models:
+        num_ftrs = net.classifier[-1].in_features
+        net.classifier[-1] = torch.nn.Linear(num_ftrs, len(classes))
+    elif net in fc_models:
+        num_ftrs = net.fc.in_features
+        net.fc = torch.nn.Linear(num_ftrs, len(classes))
+    
     net = net.to(device)
 
     if args.resume:
@@ -91,8 +92,9 @@ def main():
 
     for epoch in range(start_epoch, start_epoch+200):
         train(epoch, net, trainloader, device, optimizer, criterion)
-        test(epoch, net, testloader, device, criterion)
+        acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
+    return acc
 
 
 # Training
@@ -141,6 +143,7 @@ def test(epoch, net, testloader, device, criterion):
 
     # Save checkpoint.
     acc = 100.*correct/total
+    print(acc)
     # if acc > best_acc:
     #     print('Saving..')
     #     state = {
@@ -152,11 +155,38 @@ def test(epoch, net, testloader, device, criterion):
     #         os.mkdir('checkpoint')
     #     torch.save(state, './checkpoint/ckpt.pth')
     #     best_acc = acc
-    # hi
+    return acc
+
+models_dict = {
+        "ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
+        "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
+        "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
+        "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
+        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
+        # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
+        # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
+        "MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
+        "MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
+        "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
+        "RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
+        "ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
+        "SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
+        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
+}
+
+# Store dictionary keys into list for dropdown menu choices
+names = list(models_dict.keys())
 
 with gr.Blocks() as demo:
     #ADD CODE HERE
     with gr.Row():
+        inp = gr.Dropdown(names)
+    with gr.Row():
+        out = gr.Textbox(label="Accuracy")
+    with gr.Row():
+        btn = gr.Button("Run")
+    btn.click(fn=main,inputs=inp,outputs=out)
 
 if __name__ == '__main__':
     demo.launch()

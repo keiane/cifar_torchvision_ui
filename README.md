@@ -19,11 +19,10 @@ python main.py --resume --lr=0.01
 | Name             | Feature      |
 | ----------------- | ----------- |
 | Evelyn Atkins              | TBD      |
-| Keiane Balicanta              | TorchVision Model Dropdown      |
-| Henry Conde              | TBD      |
-| Matthew Gerace             | TBD      |
+| Keiane Balicanta and Luke Wilkins              | TorchVision Model Dropdown      |
+| Henry Conde              | Weights and Biases      |
+| Matthew Gerace             | Iteration Slider      |
 | Ethan White             | TBD      |
-| Luke Wilkins              | TBD      |
 
 ## Accuracy
 | Model             | Acc.        |
