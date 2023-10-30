@@ -18,7 +18,7 @@ python main.py --resume --lr=0.01
 ## Features to Add
 | Name                          | Feature      |
 | ----------------------------- | ----------- |
-| Evelyn Atkins and Ethan White | TBD      |
+| Evelyn Atkins and Ethan White | Error Prevention      |
 | Keiane Balicanta              | TorchVision Model Dropdown      |
 | Henry Conde                   | Weights and Biases      |
 | Matthew Gerace                | Iteration Slider      |
