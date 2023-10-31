@@ -57,7 +57,17 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
                         help='resume from checkpoint')
     args = parser.parse_args()
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    if torch.cuda.is_available():
+        device = 'cuda'
+        gr.Info("Cuda detected - running on Cuda")
+    elif torch.backends.mps.is_available():
+        device = 'mps'
+        gr.Info("MPS detected - running on Metal")
+    else:
+        device = 'cpu'
+        gr.Info("No GPU Detected - running on CPU")
+
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     ## Data
