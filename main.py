@@ -31,9 +31,20 @@ import gradio as gr
 
 def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
 
+    ## Input protection
     if not drop_type:
         gr.Warning("Please select a model from the dropdown.")
         return
+    if(epochs_sldr % 1 != 0):
+        gr.Warning("Number of epochs must be an integer.")
+        return
+    if(train_sldr % 1 != 0):
+        gr.Warning("Training batch size must be an integer.")
+        return
+    if(test_sldr % 1 != 0):
+        gr.Warning("Testing batch size must be an integer.")
+        return
+
 
     num_epochs = int(epochs_sldr)
     learn_batch = int(train_sldr)
