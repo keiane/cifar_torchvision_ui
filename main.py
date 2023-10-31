@@ -115,19 +115,20 @@ def main(drop_type):
                         momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
+    img_list = [] # initialize list for image generation
     for epoch in range(start_epoch, start_epoch+total_epoch):
         train(epoch, net, trainloader, device, optimizer, criterion)
         acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
-        if (epoch % 10 == 0): #and (epoch != 0):
+        if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
             dataiter = iter(testloader)
             imgs, labels = next(dataiter)
-            imgs = torch.tensor(imgs).to(dtype=torch.long, device=device)
-            
-    
-    gradio_imgs = np.array(imgs.cpu())
+            normalized_imgs = (imgs-imgs.min())/(imgs.max()-imgs.min())
+            for i in range(10): # generate 10 images per epoch
+                gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
+                img_list.append(gradio_imgs)
 
-    return acc
+    return acc, img_list
 
 
 # Training
@@ -203,12 +204,12 @@ with gr.Blocks() as demo:
     with gr.Row():
         out = gr.Textbox(label="Accuracy")
     with gr.Row():
-        pics = gr.Gallery()
+        pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
     with gr.Row():
         btn = gr.Button("Run")
     btn.click(fn=main,inputs=inp,outputs=[out,pics])
 
 if __name__ == '__main__':
     demo.launch()
-    #main(drop_type = "resnet")
-    main()
+    # main(drop_type = "resnet")
+    #main()
