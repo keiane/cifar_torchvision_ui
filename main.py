@@ -293,7 +293,7 @@ with gr.Blocks() as documentationApp:
                     Any warnings during training will be displayed in a yellow popup at the top right of the interface.
                     ### Data:
                     The CIFAR-10 dataset used in this interface comprises 60,000 32x32 color images spread across 10 different classes, with a training set of 50,000 images and a testing set of 10,000 images. Before training, the dataset undergoes specific transformations such as random cropping and normalization to augment the data and standardize the pixel values, respectively. These preprocessing steps help in enhancing the model's ability to learn and generalize well from the data. The interface automatically handles the downloading and preparation of the CIFAR-10 dataset, making it effortless for users to start training models without worrying about data management.
-                    ''') # Can be collapesed in VSCode to hide paragraphs from view
+                    ''') # Can be collapesed in VSCode to hide paragraphs from view. Vscode can also wrap text.
 
 
 
