@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+import gradio as gr
+import wandb
 
 import torchvision.models as models
 
@@ -27,6 +29,8 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
     learn_batch = int(train_sldr)
     test_batch = int(test_sldr)
     optimizer_choose = str(optimizer)
+    
+    wandb.init(entity="henry-conde", project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -139,19 +143,21 @@ def train(epoch, net, trainloader, device, optimizer, criterion):
 def test(epoch, net, testloader, device, criterion):
     global best_acc
     net.eval()
-    test_loss = 0
+    test_loss = 0.0
     correct = 0
     total = 0
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in tqdm(enumerate(testloader)):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = net(inputs)
-            loss = criterion(outputs, targets)
-
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+        # for epoch in range(epoch_total):
+            for batch_idx, (inputs, targets) in tqdm(enumerate(testloader)):
+                inputs, targets = inputs.to(device), targets.to(device)
+                outputs = net(inputs)
+                loss = criterion(outputs, targets)
+                test_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted.eq(targets).sum().item()
+            wandb.log({'epoch': epoch+1, 'loss': test_loss})
+            wandb.log({"acc": correct/total})
 
             # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
