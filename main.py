@@ -8,8 +8,11 @@ import torch.backends.cudnn as cudnn
 import gradio as gr
 import wandb
 
+import torchvision.models as models
+
 import torchvision
 import torchvision.transforms as transforms
+import torchvision.models as models
 
 import os
 import argparse
@@ -17,10 +20,18 @@ import argparse
 from models import *
 
 from tqdm import tqdm
+import gradio as gr
+
 # from utils import progress_bar
 
-def main():
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
+    num_epochs = int(epochs_sldr)
+    learn_batch = int(train_sldr)
+    test_batch = int(test_sldr)
+    optimizer_choose = str(optimizer)
+    
     wandb.init(entity="henry-conde", project="tutorial")
+    
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
@@ -28,7 +39,6 @@ def main():
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     # Data
@@ -48,40 +58,33 @@ def main():
     trainset = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform_train)
     trainloader = DataLoader(
-        trainset, batch_size=128, shuffle=True, num_workers=2)
+        trainset, batch_size=learn_batch, shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform_test)
     testloader = DataLoader(
-        testset, batch_size=100, shuffle=False, num_workers=2)
+        testset, batch_size=test_batch, shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
             'dog', 'frog', 'horse', 'ship', 'truck')
 
     # Model
     print('==> Building model..')
-    
-    net = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights) # Using pretrained ImageNet weights
-    # The two lines below are needed to modify resnet for cifar10
-    num_ftrs = net.fc.in_features # save the number of input features to the output fully connected layer
-    net.fc = torch.nn.Linear(num_ftrs, len(classes)) # modify the number of outputs to reflect the number of out classes
-    
-    # net = torchvision.models.vgg11()
+    net = models_dict.get(drop_type, None)
 
-    # net = VGG('VGG19')
-    # net = PreActResNet18()
-    # net = GoogLeNet()
-    # net = DenseNet121()
-    # net = ResNeXt29_2x64d()
-    # net = MobileNet()
-    # net = MobileNetV2()
-    # net = DPN92()
-    # net = ShuffleNetG2()
-    # net = SENet18()
-    # net = ShuffleNetV2(1)
-    # net = EfficientNetB0()
-    # net = RegNetX_200MF()
-    # net = SimpleDLA()
+    # Make list of models containing either classifer or fc functions
+    classifier_models = ['ConvNext_Small', 'ConvNext_Base', 'ConvNext_Large', 'DenseNet', 'EfficientNet_B0', 'MobileNetV2',
+                         'MaxVit', 'MnasNet0_5', 'SqueezeNet', 'VGG19']
+    fc_models = ['GoogLeNet', 'InceptionNetV3', 'RegNet_X_400MF', 'ResNet18', 'ShuffleNet_V2_X0_5']
+
+    # Check dropdown choice for fc or classifier function implementation
+    if net in classifier_models:
+        num_ftrs = net.classifier[-1].in_features
+        net.classifier[-1] = torch.nn.Linear(num_ftrs, len(classes))
+    elif net in fc_models:
+        num_ftrs = net.fc.in_features
+        net.fc = torch.nn.Linear(num_ftrs, len(classes))
+    
     net = net.to(device)
 
     if args.resume:
@@ -93,15 +96,24 @@ def main():
         best_acc = checkpoint['acc']
         start_epoch = checkpoint['epoch']
 
+    SGDopt = optim.SGD(net.parameters(), lr=args.lr,momentum=0.9, weight_decay=5e-4)
+    Adamopt = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=args.lr,
-                        momentum=0.9, weight_decay=5e-4)
+
+    if optimizer_choose == "SGD":
+        optimizer = SGDopt
+    elif optimizer_choose == "Adam":
+        optimizer = Adamopt
+    print (optimizer)
+
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-    for epoch in range(start_epoch, start_epoch+200):
+    for epoch in range(start_epoch, start_epoch+num_epochs):
         train(epoch, net, trainloader, device, optimizer, criterion)
-        test(epoch, net, testloader, device, criterion)
+        acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
+    return acc
 
 
 # Training
@@ -151,22 +163,59 @@ def test(epoch, net, testloader, device, criterion):
             #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
-    #acc = 100.*correct/total
-    """
-    if acc > best_acc:
-        print('Saving..')
-        state = {
-            'net': net.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
-        best_acc = acc
-        """
+    global acc
+    acc = 100.*correct/total
+    print(acc)
+    # if acc > best_acc:
+    #     print('Saving..')
+    #     state = {
+    #         'net': net.state_dict(),
+    #         'acc': acc,
+    #         'epoch': epoch,
+    #     }
+    #     if not os.path.isdir('checkpoint'):
+    #         os.mkdir('checkpoint')
+    #     torch.save(state, './checkpoint/ckpt.pth')
+    #     best_acc = acc
+    return acc
 
+models_dict = {
+        "ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
+        "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
+        "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
+        "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
+        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
+        # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
+        # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
+        "MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
+        "MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
+        "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
+        "RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
+        "ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
+        "SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
+        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
+}
 
+# Store dictionary keys into list for dropdown menu choices
+names = list(models_dict.keys())
+
+# List of optimizer names
+list = ["SGD","Adam"]
+
+with gr.Blocks() as demo:
+    with gr.Row():
+        inp = gr.Dropdown(names)
+    with gr.Row():
+        epochs_sldr = gr.Slider(label="# of Epochs",minimum=1,maximum=100,step=1,value=1)
+        train_sldr = gr.Slider(label="Training Batch Size",minimum=1,maximum=1000,step=1,value=128)
+        test_sldr = gr.Slider(label="Testing Batch Size",minimum=1,maximum=1000,step=1,value=100)
+        optimizer = gr.Dropdown(label="Choose Optimizer",choices=list,value="SGD")
+    with gr.Row():
+        accuracy = gr.Textbox(label = "Accuracy")
+    btn = gr.Button("Run")
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs = [accuracy])
 
 if __name__ == '__main__':
+    demo.launch()
     main()
