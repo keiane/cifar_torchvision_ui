@@ -6,6 +6,15 @@ I'm playing with [PyTorch](http://pytorch.org/) on the CIFAR10 dataset.
 - Python 3.6+
 - PyTorch 1.0+
 
+## Dependencies for Weights and Biases
+You must install weights and biases using the command below:
+`pip install wandb`
+
+Afterwards, you must run this command to login into weights and biases. A GitHub account can be used to login:
+`wandb login`
+
+Paste the API key you get and your code should work.
+
 ## Training
 ```
 # Start training with: 
