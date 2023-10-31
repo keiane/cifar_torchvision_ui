@@ -8,6 +8,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+import gradio as gr
+import wandb
+
+import torchvision.models as models
 
 import torchvision.models as models
 
@@ -24,8 +28,6 @@ from tqdm import tqdm
 import gradio as gr
 
 # from utils import progress_bar
-
-
 
 ### MAIN FUNCTION
 
@@ -45,18 +47,18 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
         gr.Warning("Testing batch size must be an integer.")
         return
 
-
     num_epochs = int(epochs_sldr)
     learn_batch = int(train_sldr)
     test_batch = int(test_sldr)
     optimizer_choose = str(optimizer)
+    
+    wandb.init(entity="henry-conde", project="tutorial") # Replace entity with username
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
                         help='resume from checkpoint')
     args = parser.parse_args()
-
 
     if torch.cuda.is_available():
         device = 'cuda'
@@ -155,7 +157,6 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
 
 
 ### TRAINING
-
 def train(epoch, net, trainloader, device, optimizer, criterion):
     try:
         print('\nEpoch: %d' % epoch)
@@ -230,9 +231,6 @@ def test(epoch, net, testloader, device, criterion):
         gr.Warning(f"Testing Error: {e}")
 
 
-
-### DEFINE MODELS AND PARAMETERS
-
 models_dict = {
         "ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
         "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
@@ -256,8 +254,6 @@ names = list(models_dict.keys())
 
 # Optimizer names
 optimizers = ["SGD","Adam"]
-
-
 
 ### GRADIO APP INTERFACE
 

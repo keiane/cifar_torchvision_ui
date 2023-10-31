@@ -6,6 +6,20 @@ I'm playing with [PyTorch](http://pytorch.org/) on the CIFAR10 dataset.
 - Python 3.6+
 - PyTorch 1.0+
 
+## Dependencies for Weights and Biases
+You must install weights and biases using the command below:
+`pip install wandb`
+
+Afterwards, you must run this command to login into weights and biases. A GitHub account can be used to login:
+`wandb login`
+
+Paste the API key into terminal.
+
+Additionally, change this line in `main.py`:
+`wandb.init(entity="balica15", project="tutorial")`
+
+Where "balica15" is replaced by your username that you used to login with into Weights and Biases.
+
 ## Training
 ```
 # Start training with: 
@@ -16,14 +30,14 @@ python main.py --resume --lr=0.01
 ```
 
 ## Features to Add
-| Name             | Feature      |
-| ----------------- | ----------- |
-| Evelyn Atkins              | TBD      |
+| Name                          | Feature      |
+| ----------------------------- | ----------- |
+| Evelyn Atkins and Ethan White | Error Prevention      |
 | Keiane Balicanta              | TorchVision Model Dropdown      |
-| Henry Conde              | TBD      |
-| Matthew Gerace             | TBD      |
-| Ethan White             | TBD      |
-| Luke Wilkins              | TBD      |
+| Henry Conde                   | Weights and Biases      |
+| Matthew Gerace                | Iteration Slider      |
+| Luke Wilkins                  | Image Classification |
+
 
 ## Accuracy
 | Model             | Acc.        |
