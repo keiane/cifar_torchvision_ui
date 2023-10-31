@@ -13,7 +13,12 @@ You must install weights and biases using the command below:
 Afterwards, you must run this command to login into weights and biases. A GitHub account can be used to login:
 `wandb login`
 
-Paste the API key you get and your code should work.
+Paste the API key into terminal.
+
+Additionally, change this line in `main.py`:
+`wandb.init(entity="balica15", project="tutorial")`
+
+Where "balica15" is replaced by your username that you used to login with into Weights and Biases.
 
 ## Training
 ```
