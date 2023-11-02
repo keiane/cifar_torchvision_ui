@@ -52,7 +52,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
     test_batch = int(test_sldr)
     optimizer_choose = str(optimizer)
     
-    wandb.init(entity="henry-conde", project="tutorial") # Replace entity with username
+    wandb.init(entity="balica15", project="tutorial") # Replace entity with username
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -148,11 +148,25 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-    for epoch in range(start_epoch, start_epoch+num_epochs):
+    # for epoch in range(start_epoch, start_epoch+num_epochs):
+    #     train(epoch, net, trainloader, device, optimizer, criterion)
+    #     acc = test(epoch, net, testloader, device, criterion)
+    #     scheduler.step()
+
+    img_list = [] # initialize list for image generation
+    for epoch in range(start_epoch, start_epoch+epochs_sldr):
         train(epoch, net, trainloader, device, optimizer, criterion)
         acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
-    return acc
+        if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
+            dataiter = iter(testloader)
+            imgs, labels = next(dataiter)
+            normalized_imgs = (imgs-imgs.min())/(imgs.max()-imgs.min())
+            for i in range(10): # generate 10 images per epoch
+                gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
+                img_list.append(gradio_imgs)
+
+    return acc, img_list
 
 
 
@@ -277,8 +291,10 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
     with gr.Row():
+        pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
+    with gr.Row():
         btn = gr.Button("Run")
-        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs=[accuracy])
+        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
