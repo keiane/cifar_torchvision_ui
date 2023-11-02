@@ -30,8 +30,9 @@ import gradio as gr
 # from utils import progress_bar
 
 # CSS theme styling
-theme = gr.themes.Monochrome(
-    primary_hue="zinc"
+theme = gr.themes.Base(
+    primary_hue="slate",
+    neutral_hue="orange"
 ).set(
     body_background_fill='*primary_100',
     border_color_accent='*primary_400',
@@ -229,6 +230,8 @@ def test(epoch, net, testloader, device, criterion):
                 _, predicted = outputs.max(1)
                 total += targets.size(0)
                 correct += predicted.eq(targets).sum().item()
+            wandb.log({'epoch': epoch+1, 'loss': test_loss})
+            wandb.log({"acc": correct/total})
 
                 # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
