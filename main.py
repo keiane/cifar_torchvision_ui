@@ -31,13 +31,12 @@ import gradio as gr
 
 # CSS theme styling
 theme = gr.themes.Base(
-    primary_hue="slate",
-    secondary_hue="orange",
-    neutral_hue="orange",
     font=[gr.themes.GoogleFont('Montserrat'), 'ui-sans-serif', 'system-ui', 'sans-serif'],
 ).set(
-    body_background_fill='*primary_100',
-    
+    body_text_color='black',
+    body_text_color_dark='black',
+    body_text_color_subdued='*neutral_800',
+    body_text_color_subdued_dark='*neutral_800'
 )
 
 ### MAIN FUNCTION
