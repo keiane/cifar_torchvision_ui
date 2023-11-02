@@ -32,10 +32,11 @@ import gradio as gr
 # CSS theme styling
 theme = gr.themes.Base(
     primary_hue="slate",
-    neutral_hue="orange"
+    secondary_hue="orange",
+    neutral_hue="orange",
+    font=[gr.themes.GoogleFont('Montserrat'), 'ui-sans-serif', 'system-ui', 'sans-serif'],
 ).set(
     body_background_fill='*primary_100',
-    border_color_accent='*primary_400',
     
 )
 
