@@ -29,6 +29,15 @@ import gradio as gr
 
 # from utils import progress_bar
 
+# CSS theme styling
+theme = gr.themes.Monochrome(
+    primary_hue="zinc"
+).set(
+    body_background_fill='*primary_100',
+    border_color_accent='*primary_400',
+    
+)
+
 ### MAIN FUNCTION
 
 def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
@@ -52,7 +61,8 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
     test_batch = int(test_sldr)
     optimizer_choose = str(optimizer)
     
-    wandb.init(entity="balica15", project="tutorial") # Replace entity with username
+    # REPLACE ENTITY WITH USERNAME BELOW
+    wandb.init(entity="balica15", project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -166,7 +176,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
                 img_list.append(gradio_imgs)
 
-    return acc, img_list
+    return str(acc)+"%", img_list
 
 
 
@@ -276,25 +286,21 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         gr.Markdown("# CIFAR-10 Model Training GUI")
     with gr.Row():
-        gr.Markdown("## Model")
+        gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", info="Choose one of 13 common models provided in the dropdown to use for training.")
-    with gr.Row():
-        gr.Markdown("## Parameters")
     with gr.Row():
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
         test_sldr = gr.Slider(label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
         optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
+        btn = gr.Button("Run")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
-    with gr.Row():
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    with gr.Row():
-        btn = gr.Button("Run")
-        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs=[accuracy, pics])
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
@@ -322,6 +328,6 @@ with gr.Blocks() as documentationApp:
 ### LAUNCH APP
 
 if __name__ == '__main__':
-    mainApp = gr.TabbedInterface([functionApp, documentationApp], ["Welcome", "Documentation"], theme=gr.themes.Base())
+    mainApp = gr.TabbedInterface([functionApp, documentationApp], ["Welcome", "Documentation"], theme=theme)
     mainApp.queue()
     mainApp.launch()
