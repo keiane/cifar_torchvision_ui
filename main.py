@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import gradio as gr
 import wandb
+import math
 
 import torchvision.models as models
 
@@ -63,7 +64,9 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
         return
 
     num_epochs = int(epochs_sldr)
+    global learn_batch
     learn_batch = int(train_sldr)
+    global test_batch
     test_batch = int(test_sldr)
     optimizer_choose = str(optimizer)
     
@@ -187,13 +190,18 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
 
 
 ### TRAINING
-def train(epoch, net, trainloader, device, optimizer, criterion):
+def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Progress()):
     try:
         print('\nEpoch: %d' % epoch)
         net.train()
         train_loss = 0
         correct = 0
         total = 0
+
+        iter_float = 50000/learn_batch
+        iterations = math.ceil(iter_float)
+        iter_prog = 0
+
         for batch_idx, (inputs, targets) in tqdm(enumerate(trainloader)):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -207,6 +215,10 @@ def train(epoch, net, trainloader, device, optimizer, criterion):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
+            iter_prog = iter_prog + 1 # Iterating iteration amount
+            progress(iter_prog/iterations, desc="Training", total=iterations)
+            
+
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             #              % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
@@ -218,13 +230,18 @@ def train(epoch, net, trainloader, device, optimizer, criterion):
 
 ### TESTING
 
-def test(epoch, net, testloader, device, criterion):
+def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
     try:
         global best_acc
         net.eval()
         test_loss = 0
         correct = 0
         total = 0
+
+        iter_float = 10000/test_batch
+        iterations = math.ceil(iter_float)
+        iter_prog = 0
+
         with torch.no_grad():
             for batch_idx, (inputs, targets) in tqdm(enumerate(testloader)):
                 inputs, targets = inputs.to(device), targets.to(device)
@@ -235,6 +252,10 @@ def test(epoch, net, testloader, device, criterion):
                 _, predicted = outputs.max(1)
                 total += targets.size(0)
                 correct += predicted.eq(targets).sum().item()
+
+                iter_prog = iter_prog + 1 # Iterating iteration amount
+                progress(iter_prog/iterations, desc="Testing", total=iterations)
+
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
 
