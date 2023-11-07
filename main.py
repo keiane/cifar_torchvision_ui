@@ -217,7 +217,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Pro
             correct += predicted.eq(targets).sum().item()
 
             iter_prog = iter_prog + 1 # Iterating iteration amount
-            progress(iter_prog/iterations, desc=f"Training Epoch:{epoch}", total=iterations)
+            progress(iter_prog/iterations, desc=f"Training Epoch: {epoch}", total=iterations)
             
 
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -255,7 +255,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 correct += predicted.eq(targets).sum().item()
 
                 iter_prog = iter_prog + 1 # Iterating iteration amount
-                progress(iter_prog/iterations, desc=f"Testing Epoch:{epoch}", total=iterations)
+                progress(iter_prog/iterations, desc=f"Testing Epoch: {epoch}", total=iterations)
 
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
