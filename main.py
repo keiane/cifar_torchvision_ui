@@ -47,7 +47,7 @@ theme = gr.themes.Base(
 
 ### MAIN FUNCTION
 
-def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer):
 
     ## Input protection
     if not drop_type:
@@ -68,10 +68,11 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
     learn_batch = int(train_sldr)
     global test_batch
     test_batch = int(test_sldr)
+    learning_rate = float(learning_rate)
     optimizer_choose = str(optimizer)
     
     # REPLACE ENTITY WITH USERNAME BELOW
-    wandb.init(entity="balica15", project="tutorial")
+    wandb.init(entity="wilkin17", project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -154,8 +155,8 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, optimizer):
         best_acc = checkpoint['acc']
         start_epoch = checkpoint['epoch']
 
-    SGDopt = optim.SGD(net.parameters(), lr=args.lr,momentum=0.9, weight_decay=5e-4)
-    Adamopt = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+    SGDopt = optim.SGD(net.parameters(), lr=learning_rate,momentum=0.9, weight_decay=5e-4)
+    Adamopt = optim.Adam(net.parameters(), lr=learning_rate, weight_decay=5e-4)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -216,7 +217,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Pro
             correct += predicted.eq(targets).sum().item()
 
             iter_prog = iter_prog + 1 # Iterating iteration amount
-            progress(iter_prog/iterations, desc="Training", total=iterations)
+            progress(iter_prog/iterations, desc=f"Training Epoch:{epoch}", total=iterations)
             
 
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -254,7 +255,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 correct += predicted.eq(targets).sum().item()
 
                 iter_prog = iter_prog + 1 # Iterating iteration amount
-                progress(iter_prog/iterations, desc="Testing", total=iterations)
+                progress(iter_prog/iterations, desc=f"Testing Epoch:{epoch}", total=iterations)
 
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
@@ -289,7 +290,7 @@ models_dict = {
         "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
         "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
         "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
-        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        #"EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
         "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
         # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
         # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
@@ -322,6 +323,7 @@ with gr.Blocks() as functionApp:
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
         test_sldr = gr.Slider(label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
+        learning_rate_sldr = gr.Slider(label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
         optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
         btn = gr.Button("Run")
     with gr.Row():
@@ -329,7 +331,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, optimizer], outputs=[accuracy, pics])
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
