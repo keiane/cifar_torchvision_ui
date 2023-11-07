@@ -72,7 +72,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     optimizer_choose = str(optimizer)
     
     # REPLACE ENTITY WITH USERNAME BELOW
-    wandb.init(entity="wilkin17", project="tutorial")
+    wandb.init(entity="balica15", project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -290,7 +290,7 @@ models_dict = {
         "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
         "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
         "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
-        #"EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
         "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
         # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
         # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
