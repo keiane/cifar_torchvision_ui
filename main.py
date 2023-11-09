@@ -19,6 +19,7 @@ import torchvision.models as models
 import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
+import torch.optim.lr_scheduler as lr_scheduler
 
 import os
 import argparse
@@ -165,8 +166,9 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     elif optimizer_choose == "Adam":
         optimizer = Adamopt
     print (optimizer)
-
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    
+    end_rate = learning_rate/1000 # The learning rate by the end of the lr-scheduler. Subject to chnage with testing
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor = learning_rate, end_factor = end_rate, total_iters = 10)
 
     # for epoch in range(start_epoch, start_epoch+num_epochs):
     #     train(epoch, net, trainloader, device, optimizer, criterion)
@@ -217,7 +219,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Pro
             correct += predicted.eq(targets).sum().item()
 
             iter_prog = iter_prog + 1 # Iterating iteration amount
-            progress(iter_prog/iterations, desc=f"Training Epoch: {epoch}", total=iterations)
+            progress(iter_prog/iterations, desc=f"Training Epoch {epoch}", total=iterations)
             
 
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -255,7 +257,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 correct += predicted.eq(targets).sum().item()
 
                 iter_prog = iter_prog + 1 # Iterating iteration amount
-                progress(iter_prog/iterations, desc=f"Testing Epoch: {epoch}", total=iterations)
+                progress(iter_prog/iterations, desc=f"Testing Epoch {epoch}", total=iterations)
 
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
