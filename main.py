@@ -323,7 +323,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         gr.Markdown("## Parameters")
     with gr.Row():
-        inp = gr.Dropdown(choices=names, label="Training Model", info="Choose one of 13 common models provided in the dropdown to use for training.")
+        inp = gr.Dropdown(choices=names, label="Training Model", info="Choose one of 13 common models provided in the dropdown to use for training.", value="ResNet18")
         wandb_username = gr.Textbox(placeholder = "Weights & Biases Username", label = "Weights and Biases Username", info="Enter your Weights and Biases Username used from the Weights and Biases API.")
     with gr.Row():
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
