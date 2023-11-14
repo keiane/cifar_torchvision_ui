@@ -11,6 +11,7 @@ import torch.backends.cudnn as cudnn
 import gradio as gr
 import wandb
 import math
+import numpy as np
 
 import torchvision.models as models
 
@@ -47,8 +48,7 @@ theme = gr.themes.Base(
 )
 
 ### MAIN FUNCTION
-
-def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer):
+def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
 
     ## Input protection
     if not drop_type:
@@ -71,15 +71,16 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     test_batch = int(test_sldr)
     learning_rate = float(learning_rate)
     optimizer_choose = str(optimizer)
-    
-    # REPLACE ENTITY WITH USERNAME BELOW
-    wandb.init(entity="balica15", project="tutorial")
-    
+    sigma = float(sigma_sldr)
+
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
                         help='resume from checkpoint')
     args = parser.parse_args()
+
+    # REPLACE ENTITY WITH USERNAME BELOW
+    wandb_run = wandb.init(entity=username, project="tutorial")
 
     if torch.cuda.is_available():
         device = 'cuda'
@@ -188,7 +189,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
                 img_list.append(gradio_imgs)
 
-    return str(acc)+"%", img_list
+    return str(acc)+"%", img_list, wandb_link
 
 
 
@@ -206,6 +207,8 @@ def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Pro
         iter_prog = 0
 
         for batch_idx, (inputs, targets) in tqdm(enumerate(trainloader)):
+            noise = np.random.normal(0, sigma, inputs.shape)
+            inputs += (0.1 * torch.tensor(noise))
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
@@ -321,6 +324,7 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", info="Choose one of 13 common models provided in the dropdown to use for training.")
+        wandb_username = gr.Textbox(placeholder = "Weights & Biases Username", label = "Weights and Biases Username", info="Enter your Weights and Biases Username used from the Weights and Biases API.")
     with gr.Row():
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
@@ -329,11 +333,16 @@ with gr.Blocks() as functionApp:
         optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
         btn = gr.Button("Run")
     with gr.Row():
+        gr.Markdown("## Attacking Methods")
+    with gr.Row():
+        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0.1, maximum=1, value=1, step=0.1, info="do later")    
+    with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
+        run_link = gr.Textbox(label = "Weights and Biases Link", info="A link to your current run to the Weights and Biases API data.")
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer], outputs=[accuracy, pics])
+    btn.click(fn=main, inputs=[inp, wandb_username, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr], outputs=[accuracy, pics, run_link])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
