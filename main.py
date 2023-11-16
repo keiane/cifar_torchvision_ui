@@ -12,7 +12,6 @@ import gradio as gr
 import wandb
 import math
 import numpy as np
-
 import torchvision.models as models
 
 import torchvision.models as models
@@ -21,7 +20,6 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch.optim.lr_scheduler as lr_scheduler
-
 import os
 import argparse
 
@@ -48,7 +46,8 @@ theme = gr.themes.Base(
 )
 
 ### MAIN FUNCTION
-def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
+
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
 
     ## Input protection
     if not drop_type:
@@ -71,16 +70,16 @@ def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate,
     test_batch = int(test_sldr)
     learning_rate = float(learning_rate)
     optimizer_choose = str(optimizer)
-    sigma = float(sigma_sldr)
-
+    sigma = float(sigma_sldr) 
+    
+    # REPLACE ENTITY WITH USERNAME BELOW
+    wandb.init(entity="henry-conde", project="tutorial")
+    
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--resume', '-r', action='store_true',
                         help='resume from checkpoint')
     args = parser.parse_args()
-
-    # REPLACE ENTITY WITH USERNAME BELOW
-    wandb_run = wandb.init(entity=username, project="tutorial")
 
     if torch.cuda.is_available():
         device = 'cuda'
@@ -167,10 +166,8 @@ def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate,
     elif optimizer_choose == "Adam":
         optimizer = Adamopt
     print (optimizer)
-    
-    end_rate = learning_rate/1000 # The learning rate by the end of the lr-scheduler. Subject to chnage with testing
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor = learning_rate, end_factor = end_rate, total_iters = 10)
 
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=learning_rate, end_factor=0.0001, total_iters=10)
     # for epoch in range(start_epoch, start_epoch+num_epochs):
     #     train(epoch, net, trainloader, device, optimizer, criterion)
     #     acc = test(epoch, net, testloader, device, criterion)
@@ -178,7 +175,7 @@ def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate,
 
     img_list = [] # initialize list for image generation
     for epoch in range(start_epoch, start_epoch+epochs_sldr):
-        train(epoch, net, trainloader, device, optimizer, criterion)
+        train(epoch, net, trainloader, device, optimizer, criterion, sigma)
         acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
         if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
@@ -189,12 +186,12 @@ def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate,
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
                 img_list.append(gradio_imgs)
 
-    return str(acc)+"%", img_list, wandb_link
+    return str(acc)+"%", img_list
 
 
 
 ### TRAINING
-def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Progress()):
+def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress=gr.Progress()):
     try:
         print('\nEpoch: %d' % epoch)
         net.train()
@@ -222,12 +219,12 @@ def train(epoch, net, trainloader, device, optimizer, criterion, progress=gr.Pro
             correct += predicted.eq(targets).sum().item()
 
             iter_prog = iter_prog + 1 # Iterating iteration amount
-            progress(iter_prog/iterations, desc=f"Training Epoch {epoch}", total=iterations)
+            progress(iter_prog/iterations, desc=f"Training Epoch:{epoch}", total=iterations)
             
 
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             #              % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    
+
     except Exception as e:
         print(f"Error: {e}")
         gr.Warning(f"Training Error: {e}")
@@ -260,7 +257,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 correct += predicted.eq(targets).sum().item()
 
                 iter_prog = iter_prog + 1 # Iterating iteration amount
-                progress(iter_prog/iterations, desc=f"Testing Epoch {epoch}", total=iterations)
+                progress(iter_prog/iterations, desc=f"Testing Epoch:{epoch}", total=iterations)
 
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
@@ -323,8 +320,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         gr.Markdown("## Parameters")
     with gr.Row():
-        inp = gr.Dropdown(choices=names, label="Training Model", info="Choose one of 13 common models provided in the dropdown to use for training.", value="ResNet18")
-        wandb_username = gr.Textbox(placeholder = "Weights & Biases Username", label = "Weights and Biases Username", info="Enter your Weights and Biases Username used from the Weights and Biases API.")
+        inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
     with gr.Row():
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
@@ -335,14 +331,13 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         gr.Markdown("## Attacking Methods")
     with gr.Row():
-        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0.1, maximum=1, value=1, step=0.1, info="do later")    
+        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=1, step=0.1, info="do later")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
-        run_link = gr.Textbox(label = "Weights and Biases Link", info="A link to your current run to the Weights and Biases API data.")
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, wandb_username, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr], outputs=[accuracy, pics, run_link])
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
