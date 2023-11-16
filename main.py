@@ -47,7 +47,7 @@ theme = gr.themes.Base(
 
 ### MAIN FUNCTION
 
-def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, username):
 
     ## Input protection
     if not drop_type:
@@ -73,7 +73,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     sigma = float(sigma_sldr) 
     
     # REPLACE ENTITY WITH USERNAME BELOW
-    wandb.init(entity="henry-conde", project="tutorial")
+    wandb.init(entity=username, project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -321,6 +321,7 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
+        username = gr.Textbox(label="Weights and Biases", info="Enter your username from the Weights and Biases API")
     with gr.Row():
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
@@ -337,7 +338,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr], outputs=[accuracy, pics])
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, username], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
