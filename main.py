@@ -341,7 +341,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
         username = gr.Textbox(label="Weights and Biases", info="Enter your username from the Weights and Biases API")
-        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
+        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=10, info="How many times the model will see the entire dataset during trianing.")
         with gr.Column():
             setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic")
             btn = gr.Button("Run")        
@@ -349,7 +349,7 @@ with gr.Blocks() as functionApp:
         train_sldr = gr.Slider(visible=False, label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
         test_sldr = gr.Slider(visible=False, label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
         learning_rate_sldr = gr.Slider(visible=False, label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
-        optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")        
+        optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="Adam", info="The optimization algorithm used to minimize the loss function during training.")        
         setting_radio.change(fn=settings, inputs=setting_radio, outputs=[train_sldr, test_sldr, learning_rate_sldr, optimizer])
     with gr.Row():
         gr.Markdown("## Attacking Methods")
