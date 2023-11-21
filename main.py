@@ -43,8 +43,16 @@ theme = gr.themes.Base(
     block_shadow='*shadow_drop_lg',
     button_shadow='*shadow_drop_lg',
     block_title_text_color='*neutral_950',
-    block_title_text_weight='500'
+    block_title_text_weight='500',
+    slider_color='*secondary_600'
 )
+
+def normalize(img):
+    min_im = np.min(img)
+    np_img = img - min_im
+    max_im = np.max(np_img)
+    np_img /= max_im
+    return np_img
 
 ### MAIN FUNCTION
 
@@ -206,10 +214,16 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
 
         for batch_idx, (inputs, targets) in tqdm(enumerate(trainloader)):
             noise = np.random.normal(0, sigma, inputs.shape)
-            inputs += (0.1 * torch.tensor(noise))
+            inputs += torch.tensor(noise)
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
+            n_inputs = inputs.clone().detach().cpu().numpy()
+            if(batch_idx%99 == 0):
+                plt.imshow(normalize(np.transpose(n_inputs[0], (1, 2, 0))))
+                fig_name = "test_input.png"
+                plt.savefig(fig_name)
+                print(f'Figure saved as {fig_name}')
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -354,7 +368,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         gr.Markdown("## Attacking Methods")
     with gr.Row():
-        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=1, step=0.1, info="do later")
+        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=0.1, step=0.1, info="do later")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
