@@ -13,6 +13,7 @@ import wandb
 import math
 import numpy as np
 import torchvision.models as models
+import matplotlib.pyplot as plt
 
 import torchvision.models as models
 
@@ -42,13 +43,20 @@ theme = gr.themes.Base(
     block_shadow='*shadow_drop_lg',
     button_shadow='*shadow_drop_lg',
     block_title_text_color='*neutral_950',
-    block_title_text_weight='500'
+    block_title_text_weight='500',
+    slider_color='*secondary_600'
 )
+
+def normalize(img):
+    min_im = np.min(img)
+    np_img = img - min_im
+    max_im = np.max(np_img)
+    np_img /= max_im
+    return np_img
 
 ### MAIN FUNCTION
 
 def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
-
     ## Input protection
     if not drop_type:
         gr.Warning("Please select a model from the dropdown.")
@@ -205,10 +213,16 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
 
         for batch_idx, (inputs, targets) in tqdm(enumerate(trainloader)):
             noise = np.random.normal(0, sigma, inputs.shape)
-            inputs += (0.1 * torch.tensor(noise))
+            inputs += torch.tensor(noise)
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
+            n_inputs = inputs.clone().detach().cpu().numpy()
+            if(batch_idx%99 == 0):
+                plt.imshow(normalize(np.transpose(n_inputs[0], (1, 2, 0))))
+                fig_name = "test_input.png"
+                plt.savefig(fig_name)
+                print(f'Figure saved as {fig_name}')
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -322,16 +336,16 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
     with gr.Row():
-        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
+        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=10, info="How many times the model will see the entire dataset during trianing.")
         train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
         test_sldr = gr.Slider(label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
         learning_rate_sldr = gr.Slider(label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
-        optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
+        optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="Adam", info="The optimization algorithm used to minimize the loss function during training.")
         btn = gr.Button("Run")
     with gr.Row():
         gr.Markdown("## Attacking Methods")
     with gr.Row():
-        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=1, step=0.1, info="do later")
+        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=0.1, step=0.1, info="do later")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
