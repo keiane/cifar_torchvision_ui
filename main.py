@@ -56,7 +56,8 @@ def normalize(img):
 
 ### MAIN FUNCTION
 
-def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr):
+def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, username):
+
     ## Input protection
     if not drop_type:
         gr.Warning("Please select a model from the dropdown.")
@@ -81,7 +82,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     sigma = float(sigma_sldr) 
     
     # REPLACE ENTITY WITH USERNAME BELOW
-    wandb.init(entity="henry-conde", project="tutorial")
+    wandb.init(entity=username, project="tutorial")
     
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -306,7 +307,7 @@ models_dict = {
         "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
         "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
         "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
-        "EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
+        #"EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
         "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
         # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
         # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
@@ -327,6 +328,24 @@ optimizers = ["SGD","Adam"]
 
 ### GRADIO APP INTERFACE
 
+def settings(choice):
+    if choice == "Advanced":
+        advanced = [
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Dropdown(visible=True)
+        ]
+        return advanced
+    else:
+        basic = [
+            gr.Slider(visible=False),
+            gr.Slider(visible=False),
+            gr.Slider(visible=False),
+            gr.Dropdown(visible=False)
+        ]
+        return basic
+
 ## Main app for functionality
 with gr.Blocks() as functionApp:
     with gr.Row():
@@ -335,13 +354,17 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
+        username = gr.Textbox(label="Weights and Biases", info="Enter your username from the Weights and Biases API")
+        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
+        with gr.Column():
+            setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic")
+            btn = gr.Button("Run")        
     with gr.Row():
-        epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=10, info="How many times the model will see the entire dataset during trianing.")
-        train_sldr = gr.Slider(label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
-        test_sldr = gr.Slider(label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
-        learning_rate_sldr = gr.Slider(label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
-        optimizer = gr.Dropdown(label="Optimizer", choices=optimizers, value="Adam", info="The optimization algorithm used to minimize the loss function during training.")
-        btn = gr.Button("Run")
+        train_sldr = gr.Slider(visible=False, label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
+        test_sldr = gr.Slider(visible=False, label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
+        learning_rate_sldr = gr.Slider(visible=False, label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
+        optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")        
+        setting_radio.change(fn=settings, inputs=setting_radio, outputs=[train_sldr, test_sldr, learning_rate_sldr, optimizer])
     with gr.Row():
         gr.Markdown("## Attacking Methods")
     with gr.Row():
@@ -351,7 +374,7 @@ with gr.Blocks() as functionApp:
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr], outputs=[accuracy, pics])
+    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, username], outputs=[accuracy, pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
