@@ -407,7 +407,7 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
-        username = gr.Textbox(label="Weights and Biases", info="Enter your username from the Weights and Biases API")
+        username = gr.Textbox(label="Weights and Biases", info="Enter your username from the Weights and Biases API", value="wilkin17")
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         with gr.Column():
             setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic")
