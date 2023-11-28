@@ -27,6 +27,7 @@ import argparse
 from models import *
 
 from tqdm import tqdm
+from PIL import Image
 import gradio as gr
 
 # from utils import progress_bar
@@ -62,6 +63,9 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     if not drop_type:
         gr.Warning("Please select a model from the dropdown.")
         return
+    if not username:
+        gr.Warning("Please enter a WandB username.")
+        return
     if(epochs_sldr % 1 != 0):
         gr.Warning("Number of epochs must be an integer.")
         return
@@ -80,6 +84,8 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     learning_rate = float(learning_rate)
     optimizer_choose = str(optimizer)
     sigma = float(sigma_sldr) 
+
+    print(f'this is sigma {sigma}')
     
     # REPLACE ENTITY WITH USERNAME BELOW
     wandb.init(entity=username, project="tutorial")
@@ -183,19 +189,30 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     #     scheduler.step()
 
     img_list = [] # initialize list for image generation
+    img_list2 = []
     for epoch in range(start_epoch, start_epoch+epochs_sldr):
-        train(epoch, net, trainloader, device, optimizer, criterion, sigma)
+        if sigma == 0:
+            train(epoch, net, trainloader, device, optimizer, criterion, sigma)
+        else:
+            gaussian_fig = train(epoch, net, trainloader, device, optimizer, criterion, sigma)
         acc = test(epoch, net, testloader, device, criterion)
         scheduler.step()
         if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
-            dataiter = iter(testloader)
+            dataiter = iter(trainloader)
             imgs, labels = next(dataiter)
             normalized_imgs = (imgs-imgs.min())/(imgs.max()-imgs.min())
             for i in range(10): # generate 10 images per epoch
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
-                img_list.append(gradio_imgs)
-
-    return str(acc)+"%", img_list
+                img_list.append(gradio_imgs) 
+                if sigma != 0:
+                    img_list2.append(gaussian_fig)
+    
+    if sigma == 0:
+        print(f'sigma is off for main return')
+        return str(acc)+"%", img_list
+    else:
+        print(f'sigma is on for main return')
+        return str(acc)+"%", img_list, img_list2
 
 
 
@@ -207,23 +224,39 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
         train_loss = 0
         correct = 0
         total = 0
+        
+        temp_val = 0
+        temp2_val = 0
 
         iter_float = 50000/learn_batch
         iterations = math.ceil(iter_float)
         iter_prog = 0
 
         for batch_idx, (inputs, targets) in tqdm(enumerate(trainloader)):
-            noise = np.random.normal(0, sigma, inputs.shape)
-            inputs += torch.tensor(noise)
-            inputs, targets = inputs.to(device), targets.to(device)
-            optimizer.zero_grad()
-            outputs = net(inputs)
-            n_inputs = inputs.clone().detach().cpu().numpy()
-            if(batch_idx%99 == 0):
-                plt.imshow(normalize(np.transpose(n_inputs[0], (1, 2, 0))))
-                fig_name = "test_input.png"
-                plt.savefig(fig_name)
-                print(f'Figure saved as {fig_name}')
+            if sigma == 0:
+                if temp_val == 0:
+                    print(f'training says yo waddup')
+                    temp_val = 1
+                inputs, targets = inputs.to(device), targets.to(device)
+                optimizer.zero_grad()
+                outputs = net(inputs)
+            else:
+                if temp2_val == 0:
+                    print(f'ahfhgwhfgbnhjhnjgshndhd')
+                    temp2_val = 1
+                noise = np.random.normal(0, sigma, inputs.shape)
+                inputs += torch.tensor(noise)
+                inputs, targets = inputs.to(device), targets.to(device)
+                optimizer.zero_grad()
+                outputs = net(inputs)
+                n_inputs = inputs.clone().detach().cpu().numpy()
+                if(batch_idx%99 == 0):
+                    plt.imshow(normalize(np.transpose(n_inputs[0], (1, 2, 0))))
+                    fig_name = "test_input.png"
+                    plt.savefig(fig_name)
+                    print(f'Figure saved as {fig_name}')
+                    gaussian_fig = Image.open(fig_name)
+
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -234,7 +267,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
             correct += predicted.eq(targets).sum().item()
 
             iter_prog = iter_prog + 1 # Iterating iteration amount
-            progress(iter_prog/iterations, desc=f"Training Epoch:{epoch}", total=iterations)
+            progress(iter_prog/iterations, desc=f"Training Epoch {epoch}", total=iterations)
             
 
             # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -243,7 +276,8 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
     except Exception as e:
         print(f"Error: {e}")
         gr.Warning(f"Training Error: {e}")
-
+    if sigma != 0:
+        return gaussian_fig
 
 
 ### TESTING
@@ -272,7 +306,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 correct += predicted.eq(targets).sum().item()
 
                 iter_prog = iter_prog + 1 # Iterating iteration amount
-                progress(iter_prog/iterations, desc=f"Testing Epoch:{epoch}", total=iterations)
+                progress(iter_prog/iterations, desc=f"Testing Epoch {epoch}", total=iterations)
 
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
@@ -334,7 +368,8 @@ def settings(choice):
             gr.Slider(visible=True),
             gr.Slider(visible=True),
             gr.Slider(visible=True),
-            gr.Dropdown(visible=True)
+            gr.Dropdown(visible=True),
+            gr.Radio(visible=True)
         ]
         return advanced
     else:
@@ -342,9 +377,27 @@ def settings(choice):
             gr.Slider(visible=False),
             gr.Slider(visible=False),
             gr.Slider(visible=False),
-            gr.Dropdown(visible=False)
+            gr.Dropdown(visible=False),
+            gr.Radio(visible=False)
         ]
         return basic
+
+def attacks(choice):
+    if choice == "Yes":
+        yes = [
+            gr.Markdown(visible=True),
+            gr.Slider(visible=True),
+            gr.Gallery(visible=True)
+        ]
+        return yes
+    if choice == "No":
+        no = [
+            gr.Markdown(visible=False),
+            gr.Slider(visible=False),
+            gr.Gallery(visible=False)
+        ]
+        return no
+
 
 ## Main app for functionality
 with gr.Blocks() as functionApp:
@@ -363,18 +416,22 @@ with gr.Blocks() as functionApp:
         train_sldr = gr.Slider(visible=False, label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
         test_sldr = gr.Slider(visible=False, label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
         learning_rate_sldr = gr.Slider(visible=False, label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
-        optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")        
-        setting_radio.change(fn=settings, inputs=setting_radio, outputs=[train_sldr, test_sldr, learning_rate_sldr, optimizer])
+        optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
+        use_sigma = gr.Radio(["Yes", "No"], visible=False, label="Use Gaussian Noise", value= "No")
+        setting_radio.change(fn=settings, inputs=setting_radio, outputs=[train_sldr, test_sldr, learning_rate_sldr, optimizer, use_sigma])
     with gr.Row():
-        gr.Markdown("## Attacking Methods")
+        attack_method = gr.Markdown("## Attacking Methods", visible=False)
     with gr.Row():
-        sigma_sldr = gr.Slider(label="Gaussian Noise", minimum=0, maximum=1, value=0.1, step=0.1, info="do later")
+        sigma_sldr = gr.Slider(visible=False, label="Gaussian Noise", minimum=0, maximum=1, value=0, step=0.1, info="do later")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
-        pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')
-    btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, username], outputs=[accuracy, pics])
+        pics = gr.Gallery(preview=True,selected_index=0,object_fit='contain')  
+        gaussian_pics = gr.Gallery(visible=False, preview=True, selected_index=0, object_fit='contain')
+        use_sigma.change(fn=attacks, inputs=use_sigma, outputs=[attack_method, sigma_sldr, gaussian_pics])
+        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, username], outputs=[accuracy, pics])
+        #btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, username], outputs=[accuracy, pics, gaussian_pics])
 
 ## Documentation app (implemented as second tab)
 with gr.Blocks() as documentationApp:
