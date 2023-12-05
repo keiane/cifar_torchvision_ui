@@ -15,11 +15,8 @@ import numpy as np
 import torchvision.models as models
 import matplotlib.pyplot as plt
 
-import torchvision.models as models
-
 import torchvision
 import torchvision.transforms as transforms
-import torchvision.models as models
 import torch.optim.lr_scheduler as lr_scheduler
 import os
 import argparse
