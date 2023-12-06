@@ -416,28 +416,36 @@ def attacks(choice):
         yes = [
             gr.Markdown(visible=True),
             gr.Radio(visible=True),
-            gr.Radio(visible=True),
-            gr.Gallery(visible=True),
-            gr.Gallery(visible=True)
+            gr.Radio(visible=True)
         ]
         return yes
     if choice == "No":
         no = [
             gr.Markdown(visible=False),
             gr.Radio(visible=False),
-            gr.Radio(visible=False),
-            gr.Gallery(visible=False),
-            gr.Gallery(visible=False)
+            gr.Radio(visible=False)
         ]
         return no
     
 def gaussian(choice):
     if choice == "Yes":
-        yes = gr.Slider(visible=True)
+        yes = [
+            gr.Slider(visible=True),
+            gr.Gallery(visible=True),
+        ]
         return yes
     else:
-        no = gr.Slider(visible=False)
+        no = [
+            gr.Slider(visible=False),
+            gr.Gallery(visible=False),
+        ]
         return no
+def adversarial(choice):
+    if choice == "Yes":
+        yes = gr.Gallery(visible=True)
+        return yes
+    else:
+        no = gr.Gallery(visible=False)
 
 ## Main app for functionality
 with gr.Blocks() as functionApp:
@@ -470,36 +478,26 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Training Results")
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
-        pics = gr.Gallery(preview=False,selected_index=0,object_fit='contain', label="Training Images")  
+        pics = gr.Gallery(preview=False,selected_index=0, object_fit='contain', label="Training Images")  
     with gr.Row():
         gaussian_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Gaussian Noise")
         attack_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Adversarial Attack")
-        use_attacks.change(fn=attacks, inputs=use_attacks, outputs=[attack_method, use_sigma, adv_attack, gaussian_pics, attack_pics])
-        use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=sigma_sldr)
+        use_attacks.change(fn=attacks, inputs=use_attacks, outputs=[attack_method, use_sigma, adv_attack])
+        use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=[sigma_sldr, gaussian_pics])
+        adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
         btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, username, scheduler], outputs=[accuracy, pics, gaussian_pics, attack_pics])
 
 ## Documentation app (implemented as second tab)
+
+markdown_file_path = 'documentation.md'
+with open(markdown_file_path, 'r') as file:
+    markdown_content = file.read()
+
 with gr.Blocks() as documentationApp:
     with gr.Row():
         gr.Markdown("# CIFAR-10 Training Interface Documentation")
     with gr.Row():
-        gr.Markdown('''
-                    ## Overview
-                    This interface facilitates training deep learning models on the CIFAR-10 dataset using PyTorch. Users can select from a 
-                    variety of models, set training parameters, and initiate training to evaluate model performance. Here's more about it:
-                    ### Model Selection:
-                    In the model selection section, users have the option to choose from a variety of predefined models, each with its unique architecture and set of parameters. The available models are tailored for different computational capabilities and objectives, thereby offering a diverse range of options for training on the CIFAR-10 dataset. By providing a selection of models, this interface facilitates a more flexible and tailored approach to exploring and understanding the performance of different neural network architectures on the CIFAR-10 dataset. Users can easily switch between models to observe how each performs and to find the one that best meets their requirements.
-                    ### Training Parameters:
-                    In the training parameters section, users can customize the training process by adjusting several settings. The number of epochs controls how many times the entire training dataset is passed forward and backward through the neural network. The training and testing batch sizes determine the number of samples that will be propagated through the network at one time, affecting the speed and memory usage of the training process. Lastly, the optimizer selection allows users to choose between different optimization algorithms, namely SGD (Stochastic Gradient Descent) or Adam, which have distinct behaviors and performance characteristics. These parameters collectively allow users to tailor the training process to meet specific computational constraints and performance goals.
-                    ### Training Results:
-                    In the training results section, users can initiate the training process by clicking the "Run" button. Once pressed, the selected model begins training on the CIFAR-10 dataset using the specified training parameters. The training process includes both forward and backward passes through the network, optimizing the model's weights to minimize the loss function. Upon completion of the training across the defined number of epochs, the interface will evaluate the model on the test dataset and display the achieved accuracy.
-                    ### Warnings:
-                    Any warnings during training will be displayed in a yellow popup at the top right of the interface.
-                    ### Data:
-                    The CIFAR-10 dataset used in this interface comprises 60,000 32x32 color images spread across 10 different classes, with a training set of 50,000 images and a testing set of 10,000 images. Before training, the dataset undergoes specific transformations such as random cropping and normalization to augment the data and standardize the pixel values, respectively. These preprocessing steps help in enhancing the model's ability to learn and generalize well from the data. The interface automatically handles the downloading and preparation of the CIFAR-10 dataset, making it effortless for users to start training models without worrying about data management.
-                    ''') # Can be collapesed in VSCode to hide paragraphs from view. Vscode can also wrap text.
-
-
+        gr.Markdown(markdown_content) # Can be collapesed in VSCode to hide paragraphs from view. Vscode can also wrap text.
 
 ### LAUNCH APP
 
