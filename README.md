@@ -6,6 +6,9 @@ I'm playing with [PyTorch](http://pytorch.org/) on the CIFAR10 dataset.
 - Python 3.6+
 - PyTorch 1.0+
 
+- Install the dependencies from `requirements.txt` by running `pip install -r requirements.txt`
+- Update the `requirements.txt` with `pip list --format=freeze > requirements.txt`
+
 ## Dependencies for Weights and Biases
 You must install weights and biases using the command below:
 `pip install wandb`
