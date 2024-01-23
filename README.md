@@ -23,6 +23,7 @@ Additionally, change this line in `main.py`:
 
 Where "balica15" is replaced by your username that you used to login with into Weights and Biases.
 
+
 ## Training
 ```
 # Start training with: 
