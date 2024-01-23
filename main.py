@@ -206,6 +206,10 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     img_list = [] # initialize list for image generation
     img_list2 = [] # initialize list for gaussian image generation
     img_list3 = [] # initialize list for adversarial attack image generation
+    adv_num = 1 # initialize adversarial image number for naming purposes
+    global gaussian_num 
+    gaussian_num = 1 # initialize gaussian noise image number for naming purposes
+
     for epoch in range(start_epoch, start_epoch+epochs_sldr):
         if sigma == 0:
             train(epoch, net, trainloader, device, optimizer, criterion, sigma)
@@ -217,7 +221,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
             scheduler.step(metrics=acc)
         elif not scheduler_choose == "None":
             scheduler.step()
-
+        #if not epoch == 1: # ignore making images for 1st epoch
         if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
             dataiter = iter(trainloader)
             imgs, labels = next(dataiter)
@@ -230,17 +234,19 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
                     print(torch.std(normalized_imgs))
                     atk.set_normalization_used(mean = torch.mean(normalized_imgs,axis=[0,2,3]), std=torch.std(normalized_imgs,axis=[0,2,3])/1.125)
                     adv_images = atk(imgs, labels)
-                    fig_name = imshow(adv_images[0], fig_name = "figures/adversarial_attack.png")
+                    fig_name = imshow(adv_images[0], fig_name = f'figures/adversarial_attack{adv_num}.png')
                     attack_fig = Image.open(fig_name)
-                    for i in range(1): # generate 1 image (per epoch not working)
+                    for i in range(1): # generate 1 image per epoch
                         img_list3.append(attack_fig)
+                        adv_num = adv_num + 1
             for i in range(10): # generate 10 images per epoch
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
                 img_list.append(gradio_imgs) 
             if sigma != 0:
-                    for i in range(1): # generate 1 image (per epoch not working)
+                    for i in range(1): # generate 1 image per epoch
                         img_list2.append(gaussian_fig)
-    
+                        gaussian_num = gaussian_num + 1
+
     if (sigma == 0) and (attack == "No"):
         return str(acc)+"%", img_list, None, None
     elif (sigma != 0) and (attack == "No"):
@@ -278,7 +284,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
                 outputs = net(inputs)
                 n_inputs = inputs.clone().detach().cpu().numpy()
                 if(batch_idx%99 == 0):
-                        fig_name = imshow(n_inputs[0], fig_name= "figures/gaussian_noise.png")
+                        fig_name = imshow(n_inputs[0], fig_name= f'figures/gaussian_noise{gaussian_num}.png')
                         gaussian_fig = Image.open(fig_name)
 
             loss = criterion(outputs, targets)
@@ -361,20 +367,22 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
 
 
 models_dict = {
-        "ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
-        "ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
-        "ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
+        #"AlexNet": models.AlexNet(weights=models.AlexNet_Weights.DEFAULT),
+        #"ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
+        #"ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
+        #"ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
         "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
         #"EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
-        "GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
+        #"GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
         # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
         # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
-        "MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
-        "MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
+        #"MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
+        #"MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
         "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
-        "RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
-        "ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
-        "SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
+        "ResNet50": models.resnet50(weights=models.ResNet50_Weights.DEFAULT),
+        #"RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
+        #"ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
+        #"SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
         "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
 }
 
