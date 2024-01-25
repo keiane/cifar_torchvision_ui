@@ -231,6 +231,12 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
     img_list1 = [] # initialize list for combined image/labels
     img_list2 = [] # initialize list for gaussian image generation
     img_list3 = [] # initialize list for adversarial attack image generation
+
+    # The following lists are used when generating all images in an epoch instead of 10:
+    full_img_labels = []
+    full_raw_image_list = []
+    full_img_list1 = []
+
     adv_num = 1 # initialize adversarial image number for naming purposes
     global gaussian_num 
     gaussian_num = 1 # initialize gaussian noise image number for naming purposes
@@ -271,22 +277,31 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
                 actual_text = class_names(labels[i].item(), classes)
                 label_text = f'Epoch: {epoch} | Predicted: {predicted_text} | Actual: {actual_text}'
                 img_labels.append(label_text)
+            for i in range(test_batch): # generate all images per epoch
+                full_gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
+                full_raw_image_list.append(full_gradio_imgs)
+                full_predicted_text = class_names(predicted[i].item(), classes)
+                full_actual_text = class_names(labels[i].item(), classes)
+                full_label_text = f'Epoch: {epoch} | Predicted: {full_predicted_text} | Actual: {full_actual_text}'
+                full_img_labels.append(full_label_text)
             for i in range(len(raw_image_list)):
                 img_tuple = (raw_image_list[i], img_labels[i])
                 img_list1.append(img_tuple)
+            for i in range(len(full_raw_image_list)):    
+                full_img_tuple = (full_raw_image_list[i], full_img_labels[i])
+                full_img_list1.append(full_img_tuple)
             if sigma != 0:
                     for i in range(1): # generate 1 image per epoch
                         img_list2.append(gaussian_fig)
                         gaussian_num = gaussian_num + 1
-    print(img_list1) # Debugging, remove once fully done testing labels
     if (sigma == 0) and (attack == "No"):
-        return str(acc)+"%", img_list1, None, None
+        return str(acc)+"%", img_list1, full_img_list1, None, None
     elif (sigma != 0) and (attack == "No"):
-        return str(acc)+"%", img_list1, img_list2, None
+        return str(acc)+"%", img_list1, full_img_list1, img_list2, None
     elif (sigma == 0) and (attack == "Yes"):
-        return str(acc)+"%", img_list1, None, img_list3
+        return str(acc)+"%", img_list1, full_img_list1, None, img_list3
     else:
-        return str(acc)+"%", img_list1, img_list2, img_list3
+        return str(acc)+"%", img_list1, full_img_list1, img_list2, img_list3
 
 
 
@@ -429,6 +444,14 @@ schedulers = ["None","CosineAnnealingLR","ReduceLROnPlateau","StepLR"]
 
 ### GRADIO APP INTERFACE
 
+def togglepicsettings(choice):
+    yes=gr.Gallery(visible=True)
+    no=gr.Gallery(visible=False)
+    if choice == "Yes":
+        return yes,no
+    else:
+        return no,yes
+
 def settings(choice):
     if choice == "Advanced":
         advanced = [
@@ -518,14 +541,18 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         gr.Markdown("## Training Results")
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
-        pics = gr.Gallery(preview=False,selected_index=0, object_fit='contain', label="Testing Images")  
+        with gr.Column():
+            showpics = gr.Radio(["Yes","No"], visible = True, label = "Show all pictures?", value = "No")
+            pics = gr.Gallery(preview=False, selected_index=0, object_fit='contain', label="Testing Images")
+            allpics = gr.Gallery(preview=True, selected_index=0, object_fit='contain', label="Full Testing Images",visible = False)
+            showpics.change(fn=togglepicsettings, inputs=[showpics], outputs = [allpics, pics])
     with gr.Row():
         gaussian_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Gaussian Noise")
         attack_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Adversarial Attack")
         use_attacks.change(fn=attacks, inputs=use_attacks, outputs=[attack_method, use_sigma, adv_attack])
         use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=[sigma_sldr, gaussian_pics])
         adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
-        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, username, scheduler], outputs=[accuracy, pics, gaussian_pics, attack_pics])
+        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, username, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
 
 ## Documentation app (implemented as second tab)
 
