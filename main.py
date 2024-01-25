@@ -67,6 +67,29 @@ def imshow(img, fig_name = "test_input.png"):
     print(f'Figure saved as {fig_name}')
     return fig_name
 
+def class_names(class_num, class_list): # converts the raw number label to text
+    if class_num == 0:
+        return(class_list[0])
+    elif class_num == 1:
+        return(class_list[1])
+    elif class_num == 2:
+        return(class_list[2])
+    elif class_num == 3:
+        return(class_list[3])
+    elif class_num == 4:
+        return(class_list[4])
+    elif class_num == 5:
+        return(class_list[5])
+    elif class_num == 6:
+        return(class_list[6])
+    elif class_num == 7:
+        return(class_list[7])
+    elif class_num == 8:
+        return(class_list[8])
+    elif class_num == 9:
+        return(class_list[9])
+
+
 ### MAIN FUNCTION
 
 def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, adv_attack, username, scheduler):
@@ -143,7 +166,7 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
         testloader = DataLoader(
-            testset, batch_size=test_batch, shuffle=False, num_workers=2)
+            testset, batch_size=test_batch, shuffle=True, num_workers=2)
 
         classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
     except Exception as e:
@@ -203,7 +226,9 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
         scheduler = lr_scheduler.StepLR(optimizer, step_size=30)
     print (f'scheduler: {scheduler_choose}')
 
-    img_list = [] # initialize list for image generation
+    img_labels = [] # initialize list for label generation
+    raw_image_list = [] # initialize list for image generation
+    img_list1 = [] # initialize list for combined image/labels
     img_list2 = [] # initialize list for gaussian image generation
     img_list3 = [] # initialize list for adversarial attack image generation
     adv_num = 1 # initialize adversarial image number for naming purposes
@@ -215,15 +240,15 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
             train(epoch, net, trainloader, device, optimizer, criterion, sigma)
         else:
             gaussian_fig = train(epoch, net, trainloader, device, optimizer, criterion, sigma)
-        acc = test(epoch, net, testloader, device, criterion)
+        acc, predicted = test(epoch, net, testloader, device, criterion)
 
         if scheduler_choose == "ReduceLROnPlateau":
             scheduler.step(metrics=acc)
         elif not scheduler_choose == "None":
             scheduler.step()
-        #if not epoch == 1: # ignore making images for 1st epoch
-        if ((epoch-1) % 10 == 0) or (epoch == 0): # generate images every 10 epochs (and the 0th epoch)
-            dataiter = iter(trainloader)
+        
+        if (((epoch-1) % 10 == 0) or (epoch == 0)) and (epoch != 1): # generate images every 10 epochs (and the 0th epoch)
+            dataiter = iter(testloader)
             imgs, labels = next(dataiter)
             normalized_imgs = (imgs-imgs.min())/(imgs.max()-imgs.min())
             atk = torchattacks.PGD(net, eps=0.00015, alpha=0.0000000000000001, steps=7)
@@ -241,20 +266,27 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
                         adv_num = adv_num + 1
             for i in range(10): # generate 10 images per epoch
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
-                img_list.append(gradio_imgs) 
+                raw_image_list.append(gradio_imgs) 
+                predicted_text = class_names(predicted[i].item(), classes)
+                actual_text = class_names(labels[i].item(), classes)
+                label_text = f'Epoch: {epoch} | Predicted: {predicted_text} | Actual: {actual_text}'
+                img_labels.append(label_text)
+            for i in range(len(raw_image_list)):
+                img_tuple = (raw_image_list[i], img_labels[i])
+                img_list1.append(img_tuple)
             if sigma != 0:
                     for i in range(1): # generate 1 image per epoch
                         img_list2.append(gaussian_fig)
                         gaussian_num = gaussian_num + 1
-
+    print(img_list1) # Debugging, remove once fully done testing labels
     if (sigma == 0) and (attack == "No"):
-        return str(acc)+"%", img_list, None, None
+        return str(acc)+"%", img_list1, None, None
     elif (sigma != 0) and (attack == "No"):
-        return str(acc)+"%", img_list, img_list2, None
+        return str(acc)+"%", img_list1, img_list2, None
     elif (sigma == 0) and (attack == "Yes"):
-        return str(acc)+"%", img_list, None, img_list3
+        return str(acc)+"%", img_list1, None, img_list3
     else:
-        return str(acc)+"%", img_list, img_list2, img_list3
+        return str(acc)+"%", img_list1, img_list2, img_list3
 
 
 
@@ -359,7 +391,7 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
         #         os.mkdir('checkpoint')
         #     torch.save(state, './checkpoint/ckpt.pth')
         #     best_acc = acc
-        return acc
+        return acc, predicted
     
     except Exception as e:
         print(f"Error: {e}")
@@ -456,7 +488,7 @@ def adversarial(choice):
         no = gr.Gallery(visible=False)
 
 ## Main app for functionality
-with gr.Blocks() as functionApp:
+with gr.Blocks(css=".caption-label {display:none}") as functionApp:
     with gr.Row():
         gr.Markdown("# CIFAR-10 Model Training GUI")
     with gr.Row():
@@ -486,7 +518,7 @@ with gr.Blocks() as functionApp:
         gr.Markdown("## Training Results")
     with gr.Row():
         accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
-        pics = gr.Gallery(preview=False,selected_index=0, object_fit='contain', label="Training Images")  
+        pics = gr.Gallery(preview=False,selected_index=0, object_fit='contain', label="Testing Images")  
     with gr.Row():
         gaussian_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Gaussian Noise")
         attack_pics = gr.Gallery(visible=False, preview=False, selected_index=0, object_fit='contain', label="Adversarial Attack")
