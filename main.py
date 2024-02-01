@@ -12,10 +12,8 @@ import gradio as gr
 import wandb
 import math
 import numpy as np
-import torchvision.models as models
 import matplotlib.pyplot as plt
 
-import torchvision.models as models
 
 import torchvision
 import torchvision.transforms as transforms
@@ -68,30 +66,14 @@ def imshow(img, fig_name = "test_input.png"):
     return fig_name
 
 def class_names(class_num, class_list): # converts the raw number label to text
-    if class_num == 0:
-        return(class_list[0])
-    elif class_num == 1:
-        return(class_list[1])
-    elif class_num == 2:
-        return(class_list[2])
-    elif class_num == 3:
-        return(class_list[3])
-    elif class_num == 4:
-        return(class_list[4])
-    elif class_num == 5:
-        return(class_list[5])
-    elif class_num == 6:
-        return(class_list[6])
-    elif class_num == 7:
-        return(class_list[7])
-    elif class_num == 8:
-        return(class_list[8])
-    elif class_num == 9:
-        return(class_list[9])
+    if (class_num < 0) and (class_num >= 10):
+        gr.Warning("Class List Error")
+        return
+    return class_list[class_num]
 
 
 ### MAIN FUNCTION
-
+best_acc = 0
 def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, adv_attack, username, scheduler):
 
     ## Input protection
@@ -197,14 +179,14 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
         print(f"Error: {e}")
         gr.Warning(f"Model Building Error: {e}")
 
-    if args.resume:
-        # Load checkpoint.
-        print('==> Resuming from checkpoint..')
-        assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-        checkpoint = torch.load('./checkpoint/ckpt.pth')
-        net.load_state_dict(checkpoint['net'])
-        best_acc = checkpoint['acc']
-        start_epoch = checkpoint['epoch']
+    # if args.resume:
+    #     # Load checkpoint.
+    #     print('==> Resuming from checkpoint..')
+    #     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    #     checkpoint = torch.load('./checkpoint/ckpt.pth')
+    #     net.load_state_dict(checkpoint['net'])
+    #     best_acc = checkpoint['acc']
+    #     start_epoch = checkpoint['epoch']
 
     SGDopt = optim.SGD(net.parameters(), lr=learning_rate,momentum=0.9, weight_decay=5e-4)
     Adamopt = optim.Adam(net.parameters(), lr=learning_rate, weight_decay=5e-4)
@@ -361,7 +343,6 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
 
 def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
     try:
-        global best_acc
         net.eval()
         test_loss = 0
         correct = 0
@@ -392,9 +373,15 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
         # Save checkpoint.
+        global best_acc
         global acc
         acc = 100.*correct/total
         print(acc)
+        if acc > best_acc:
+            best_acc = acc
+            return best_acc, predicted
+        else:
+            return acc, predicted
         # if acc > best_acc:
         #     print('Saving..')
         #     state = {
@@ -406,7 +393,6 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
         #         os.mkdir('checkpoint')
         #     torch.save(state, './checkpoint/ckpt.pth')
         #     best_acc = acc
-        return acc, predicted
     
     except Exception as e:
         print(f"Error: {e}")
