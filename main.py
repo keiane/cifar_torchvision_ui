@@ -386,9 +386,6 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
         btn.click(fn=main, inputs=[inp, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
 
-### Creators Tab
-#creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
-#content_dict = creators_import()
 
 with gr.Blocks() as creatorsApp:
     gr.HTML(htext)
