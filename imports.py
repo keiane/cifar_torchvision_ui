@@ -37,3 +37,4 @@ from settings_defs import input_protection
 from settings_defs import documentation_import
 ###IMPORT CREATORS
 from settings_defs import creators_import
+from hypertext import htext
