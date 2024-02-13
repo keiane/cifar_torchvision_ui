@@ -393,14 +393,8 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
 creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
 content_dict = creators_import()
 
-with gr.Blocks() as creatorsTab:
-    with gr.Row():
-        gr.Markdown("Meet the Creators")
-    for creator in creators_array:
-        with gr.Column():
-            gr.Image(f'creators/{creator}/{creator}_headshot.jpg')
-        with gr.Column():
-            gr.Markdown(content_dict[creator])
+with gr.Blocks() as creatorsApp:
+    gr.HTML(htext)
 
 with gr.Blocks() as documentationApp:
     with gr.Row():
@@ -412,6 +406,5 @@ with gr.Blocks() as documentationApp:
 ### LAUNCH APP
 
 if __name__ == '__main__':
-    mainApp = gr.TabbedInterface([functionApp, documentationApp, creatorsTab], ["Welcome", "Documentation", "Creators"], theme=theme)
-    mainApp.queue()
-    mainApp.launch()
+    mainApp = gr.TabbedInterface([functionApp, documentationApp, creatorsApp], ["Welcome", "Documentation", "Creators"], theme=theme)
+    mainApp.queue().launch()
