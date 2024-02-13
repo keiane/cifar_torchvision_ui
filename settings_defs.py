@@ -51,9 +51,6 @@ def togglepicsettings(choice):
 def settings(choice):
     if choice == "Advanced":
         advanced = [
-        gr.Slider(visible=True),
-        gr.Slider(visible=True),
-        gr.Slider(visible=True),
         gr.Dropdown(visible=True),
         gr.Dropdown(visible=True),
         gr.Radio(visible=True)
@@ -61,9 +58,6 @@ def settings(choice):
         return advanced
     else:
         basic = [
-        gr.Slider(visible=False),
-        gr.Slider(visible=False),
-        gr.Slider(visible=False),
         gr.Dropdown(visible=False),
         gr.Dropdown(visible=False),
         gr.Radio(visible=False)
@@ -106,7 +100,7 @@ def adversarial(choice):
     else:
         no = gr.Gallery(visible=False)
 
-def input_protection(drop_type, username, epochs_sldr, train_sldr, test_sldr):
+def input_protection(drop_type, username, epochs_sldr):
     if not drop_type:
         gr.Warning("Please select a model from the dropdown.")
         return
@@ -116,12 +110,6 @@ def input_protection(drop_type, username, epochs_sldr, train_sldr, test_sldr):
     if(epochs_sldr % 1 != 0):
         gr.Warning("Number of epochs must be an integer.")
         return
-    if(train_sldr % 1 != 0):
-        gr.Warning("Training batch size must be an integer.")
-        return
-    if(test_sldr % 1 != 0):
-        gr.Warning("Testing batch size must be an integer.")
-        return
 
 def documentation_import():
     markdown_file_path = 'documentation.md'
@@ -129,13 +117,13 @@ def documentation_import():
         markdown_content = file.read()
     return markdown_content
 
-creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
-def creators_import():
-    all_content = {}
-    for creator in creators_array:
-        markdown_creator_path = os.path.join('creators', creator, f'markdown_{creator}.md')
-        with open(markdown_creator_path, 'r') as file:
-            markdown_content = file.read()
-            all_content[creator] = markdown_content
+# creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
+# def creators_import():
+#     all_content = {}
+#     for creator in creators_array:
+#         markdown_creator_path = os.path.join('creators', creator, f'markdown_{creator}.md')
+#         with open(markdown_creator_path, 'r') as file:
+#             markdown_content = file.read()
+#             all_content[creator] = markdown_content
     
-    return all_content
+#     return all_content
