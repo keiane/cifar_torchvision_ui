@@ -28,16 +28,16 @@ models_dict = {
 }
 
 ### MAIN FUNCTION
-def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, adv_attack, scheduler):
+def main(drop_type, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, scheduler):
     
-    input_protection(drop_type, username, epochs_sldr, train_sldr, test_sldr)
+    input_protection(drop_type, username, epochs_sldr)
 
     num_epochs = int(epochs_sldr)
     global learn_batch
-    learn_batch = int(train_sldr)
+    learn_batch = int(128)
     global test_batch
-    test_batch = int(test_sldr)
-    learning_rate = float(learning_rate)
+    test_batch = int(100)
+    learning_rate = float(0.001)
     optimizer_choose = str(optimizer)
     sigma = float(sigma_sldr) 
     attack = str(adv_attack)
@@ -359,13 +359,10 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
             setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic")
             btn = gr.Button("Run")        
     with gr.Row():
-        train_sldr = gr.Slider(visible=False, label="Training Batch Size", minimum=1, maximum=1000, step=1, value=128, info="The number of training samples processed before the model's internal parameters are updated.")
-        test_sldr = gr.Slider(visible=False, label="Testing Batch Size", minimum=1, maximum=1000, step=1, value=100, info="The number of testing samples processed at once during the evaluation phase.")
-        learning_rate_sldr = gr.Slider(visible=False, label="Learning Rate", minimum=0.0001, maximum=0.1, step=0.0001, value=0.001, info="The learning rate of the optimization program.")
         optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
         scheduler = gr.Dropdown(visible=False, label="Scheduler", choices=schedulers, value="CosineAnnealingLR", info="The scheduler used to iteratively alter learning rate.")
         use_attacks = gr.Radio(["Yes", "No"], visible=False, label="Use Attacking Methods?", value="No")
-        setting_radio.change(fn=settings, inputs=setting_radio, outputs=[train_sldr, test_sldr, learning_rate_sldr, optimizer, scheduler, use_attacks])
+        setting_radio.change(fn=settings, inputs=setting_radio, outputs=[optimizer, scheduler, use_attacks])
     with gr.Row():
         attack_method = gr.Markdown("## Attacking Methods", visible=False)
     with gr.Row():
@@ -387,11 +384,11 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         use_attacks.change(fn=attacks, inputs=use_attacks, outputs=[attack_method, use_sigma, adv_attack])
         use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=[sigma_sldr, gaussian_pics])
         adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
-        btn.click(fn=main, inputs=[inp, username, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
+        btn.click(fn=main, inputs=[inp, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
 
 ### Creators Tab
-creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
-content_dict = creators_import()
+#creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
+#content_dict = creators_import()
 
 with gr.Blocks() as creatorsApp:
     gr.HTML(htext)
