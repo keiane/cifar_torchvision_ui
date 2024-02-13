@@ -407,4 +407,4 @@ with gr.Blocks() as documentationApp:
 
 if __name__ == '__main__':
     mainApp = gr.TabbedInterface([functionApp, documentationApp, creatorsApp], ["Welcome", "Documentation", "Creators"], theme=theme)
-    mainApp.queue().launch()
+    mainApp.queue().launch(allowed_paths=["file/creators/keiane.png", "file/creators/henry.jpg", "file/creators/ethan.jpg", "file/creators/evelyn.jpg", "file/creators/matt.jpg", "file/creaotrs/luke.jpg"])
