@@ -162,6 +162,9 @@ def main(drop_type, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, sc
     global gaussian_num 
     gaussian_num = 1 # initialize gaussian noise image number for naming purposes
 
+    FGSM_atk = torchattacks.FGSM(net, eps=0.000001/255)
+    PGD_atk = torchattacks.PGD(net, eps=0.00015, alpha=0.0000000000000001, steps=7)
+
     for epoch in range(start_epoch, start_epoch+epochs_sldr):
         if sigma == 0:
             train(epoch, net, trainloader, device, optimizer, criterion, sigma)
@@ -184,10 +187,17 @@ def main(drop_type, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, sc
                     print("error occured")
                 else:
                     print(torch.std(normalized_imgs))
-                    atk.set_normalization_used(mean = torch.mean(normalized_imgs,axis=[0,2,3]), std=torch.std(normalized_imgs,axis=[0,2,3])/1.125)
-                    adv_images = atk(imgs, labels)
-                    fig_name = imshow(adv_images[0], fig_name = f'figures/adversarial_attack{adv_num}.png')
+                    PGD_atk.set_normalization_used(mean = torch.mean(normalized_imgs,axis=[0,2,3]), std=torch.std(normalized_imgs,axis=[0,2,3])/1.125)
+                    adv_images = PGD_atk(imgs, labels)
+                    fig_name = imshow(adv_images[0], fig_name = f'figures/PGD_attack{adv_num}.png')
                     attack_fig = Image.open(fig_name)
+                    adv_images = FGSM_atk(imgs, labels)
+                    fig_name = imshow(adv_images[0], fig_name = f'figures/FGSM_attack{adv_num}.png')
+                    attack_fig = Image.open(fig_name)
+
+                    fig_name = imshow(imgs[0], fig_name = f'figures/Normal_Image{adv_num}.png')
+                    attack_fig = Image.open(fig_name)
+
                     for i in range(1): # generate 1 image per epoch
                         img_list3.append(attack_fig)
                         adv_num = adv_num + 1
