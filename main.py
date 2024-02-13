@@ -1,39 +1,11 @@
 ###### Train CIFAR10 with PyTorch. ######
 
-### IMPORT DEPENDENCIES
+###
+from imports import *
 
-from torch.utils.data import DataLoader
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
-import gradio as gr
-import wandb
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-
-
-import torchvision
-import torchvision.transforms as transforms
-import torchvision.models as models
-import torch.optim.lr_scheduler as lr_scheduler
-import os
-import argparse
-import torchattacks
-
-from models import *
-
-from tqdm import tqdm
-from PIL import Image
-import gradio as gr
-
-# from utils import progress_bar
-
-# CSS theme styling
-theme = gr.themes.Base(
-    font=[gr.themes.GoogleFont('Montserrat'), 'ui-sans-serif', 'system-ui', 'sans-serif'],
+### CSS theme styling
+theme = Base(
+    font=[GoogleFont('Montserrat'), 'ui-sans-serif', 'system-ui', 'sans-serif'],
     primary_hue="emerald",
     secondary_hue="emerald",
     neutral_hue="zinc"
@@ -47,51 +19,18 @@ theme = gr.themes.Base(
     slider_color='*secondary_600'
 )
 
-def normalize(img):
-    min_im = np.min(img)
-    np_img = img - min_im
-    max_im = np.max(np_img)
-    np_img /= max_im
-    return np_img
-
-def imshow(img, fig_name = "test_input.png"):
-    try:
-        img = img.clone().detach().cpu().numpy()
-    except:
-        print('img already numpy')
-
-    plt.imshow(normalize(np.transpose(img, (1, 2, 0))))
-    plt.savefig(fig_name)
-    print(f'Figure saved as {fig_name}')
-    return fig_name
-
-def class_names(class_num, class_list): # converts the raw number label to text
-    if (class_num < 0) and (class_num >= 10):
-        gr.Warning("Class List Error")
-        return
-    return class_list[class_num]
-
+### Models Dictionary
+models_dict = {
+        "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
+        "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
+        "ResNet50": models.resnet50(weights=models.ResNet50_Weights.DEFAULT),
+        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
+}
 
 ### MAIN FUNCTION
-best_acc = 0
-def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, adv_attack, username, scheduler):
-
-    ## Input protection
-    if not drop_type:
-        gr.Warning("Please select a model from the dropdown.")
-        return
-    if not username:
-        gr.Warning("Please enter a WandB username.")
-        return
-    if(epochs_sldr % 1 != 0):
-        gr.Warning("Number of epochs must be an integer.")
-        return
-    if(train_sldr % 1 != 0):
-        gr.Warning("Training batch size must be an integer.")
-        return
-    if(test_sldr % 1 != 0):
-        gr.Warning("Testing batch size must be an integer.")
-        return
+def main(drop_type, username, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer, sigma_sldr, adv_attack, scheduler):
+    
+    input_protection(drop_type, username, epochs_sldr, train_sldr, test_sldr)
 
     num_epochs = int(epochs_sldr)
     global learn_batch
@@ -179,14 +118,14 @@ def main(drop_type, epochs_sldr, train_sldr, test_sldr, learning_rate, optimizer
         print(f"Error: {e}")
         gr.Warning(f"Model Building Error: {e}")
 
-    # if args.resume:
-    #     # Load checkpoint.
-    #     print('==> Resuming from checkpoint..')
-    #     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    #     checkpoint = torch.load('./checkpoint/ckpt.pth')
-    #     net.load_state_dict(checkpoint['net'])
-    #     best_acc = checkpoint['acc']
-    #     start_epoch = checkpoint['epoch']
+    if args.resume:
+        # Load checkpoint.
+        print('==> Resuming from checkpoint..')
+        assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+        checkpoint = torch.load('./checkpoint/ckpt.pth')
+        net.load_state_dict(checkpoint['net'])
+        best_acc = checkpoint['acc']
+        start_epoch = checkpoint['epoch']
 
     SGDopt = optim.SGD(net.parameters(), lr=learning_rate,momentum=0.9, weight_decay=5e-4)
     Adamopt = optim.Adam(net.parameters(), lr=learning_rate, weight_decay=5e-4)
@@ -343,6 +282,7 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
 
 def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
     try:
+        global best_acc
         net.eval()
         test_loss = 0
         correct = 0
@@ -373,15 +313,9 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
         # Save checkpoint.
-        global best_acc
         global acc
         acc = 100.*correct/total
         print(acc)
-        if acc > best_acc:
-            best_acc = acc
-            return best_acc, predicted
-        else:
-            return acc, predicted
         # if acc > best_acc:
         #     print('Saving..')
         #     state = {
@@ -393,31 +327,14 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
         #         os.mkdir('checkpoint')
         #     torch.save(state, './checkpoint/ckpt.pth')
         #     best_acc = acc
+        return acc, predicted
     
     except Exception as e:
         print(f"Error: {e}")
         gr.Warning(f"Testing Error: {e}")
 
 
-models_dict = {
-        #"AlexNet": models.AlexNet(weights=models.AlexNet_Weights.DEFAULT),
-        #"ConvNext_Small": models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT),
-        #"ConvNext_Base": models.convnext_base(weights=models.ConvNeXt_Base_Weights.DEFAULT),
-        #"ConvNext_Large": models.convnext_large(weights=models.ConvNeXt_Large_Weights.DEFAULT),
-        "DenseNet": models.densenet121(weights=models.DenseNet121_Weights.DEFAULT),
-        #"EfficientNet_B0": models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT),
-        #"GoogLeNet": models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT),
-        # "InceptionNetV3": models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT),
-        # "MaxVit": models.maxvit_t(weights=models.MaxVit_T_Weights.DEFAULT),
-        #"MnasNet0_5": models.mnasnet0_5(weights=models.MNASNet0_5_Weights.DEFAULT),
-        #"MobileNetV2": models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT),
-        "ResNet18": models.resnet18(weights=models.ResNet18_Weights.DEFAULT),
-        "ResNet50": models.resnet50(weights=models.ResNet50_Weights.DEFAULT),
-        #"RegNet_X_400MF": models.regnet_x_400mf(weights=models.RegNet_X_400MF_Weights.DEFAULT),
-        #"ShuffleNet_V2_X0_5": models.shufflenet_v2_x0_5(weights=models.ShuffleNet_V2_X0_5_Weights.DEFAULT),
-        #"SqueezeNet": models.squeezenet1_0(weights=models.SqueezeNet1_0_Weights.DEFAULT),
-        "VGG19": models.vgg19(weights=models.VGG19_Weights.DEFAULT)
-}
+
 
 # Store dictionary keys into list for dropdown menu choices
 names = list(models_dict.keys())
@@ -427,74 +344,6 @@ optimizers = ["SGD","Adam"]
 
 # Scheduler names
 schedulers = ["None","CosineAnnealingLR","ReduceLROnPlateau","StepLR"]
-
-### GRADIO APP INTERFACE
-
-def togglepicsettings(choice):
-    yes=gr.Gallery(visible=True)
-    no=gr.Gallery(visible=False)
-    if choice == "Yes":
-        return yes,no
-    else:
-        return no,yes
-
-def settings(choice):
-    if choice == "Advanced":
-        advanced = [
-            gr.Slider(visible=True),
-            gr.Slider(visible=True),
-            gr.Slider(visible=True),
-            gr.Dropdown(visible=True),
-            gr.Dropdown(visible=True),
-            gr.Radio(visible=True)
-        ]
-        return advanced
-    else:
-        basic = [
-            gr.Slider(visible=False),
-            gr.Slider(visible=False),
-            gr.Slider(visible=False),
-            gr.Dropdown(visible=False),
-            gr.Dropdown(visible=False),
-            gr.Radio(visible=False)
-        ]
-        return basic
-
-def attacks(choice):
-    if choice == "Yes":
-        yes = [
-            gr.Markdown(visible=True),
-            gr.Radio(visible=True),
-            gr.Radio(visible=True)
-        ]
-        return yes
-    if choice == "No":
-        no = [
-            gr.Markdown(visible=False),
-            gr.Radio(visible=False),
-            gr.Radio(visible=False)
-        ]
-        return no
-    
-def gaussian(choice):
-    if choice == "Yes":
-        yes = [
-            gr.Slider(visible=True),
-            gr.Gallery(visible=True),
-        ]
-        return yes
-    else:
-        no = [
-            gr.Slider(visible=False),
-            gr.Gallery(visible=False),
-        ]
-        return no
-def adversarial(choice):
-    if choice == "Yes":
-        yes = gr.Gallery(visible=True)
-        return yes
-    else:
-        no = gr.Gallery(visible=False)
 
 ## Main app for functionality
 with gr.Blocks(css=".caption-label {display:none}") as functionApp:
@@ -538,23 +387,31 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         use_attacks.change(fn=attacks, inputs=use_attacks, outputs=[attack_method, use_sigma, adv_attack])
         use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=[sigma_sldr, gaussian_pics])
         adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
-        btn.click(fn=main, inputs=[inp, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, username, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
+        btn.click(fn=main, inputs=[inp, username, epochs_sldr, train_sldr, test_sldr, learning_rate_sldr, optimizer, sigma_sldr, adv_attack, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
 
-## Documentation app (implemented as second tab)
+### Creators Tab
+creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
+content_dict = creators_import()
 
-markdown_file_path = 'documentation.md'
-with open(markdown_file_path, 'r') as file:
-    markdown_content = file.read()
+with gr.Blocks() as creatorsTab:
+    with gr.Row():
+        gr.Markdown("Meet the Creators")
+    for creator in creators_array:
+        with gr.Column():
+            gr.Image(f'creators/{creator}/{creator}_headshot.jpg')
+        with gr.Column():
+            gr.Markdown(content_dict[creator])
 
 with gr.Blocks() as documentationApp:
     with gr.Row():
         gr.Markdown("# CIFAR-10 Training Interface Documentation")
     with gr.Row():
-        gr.Markdown(markdown_content) # Can be collapesed in VSCode to hide paragraphs from view. Vscode can also wrap text.
+        gr.Markdown(documentation_import)
+
 
 ### LAUNCH APP
 
 if __name__ == '__main__':
-    mainApp = gr.TabbedInterface([functionApp, documentationApp], ["Welcome", "Documentation"], theme=theme)
+    mainApp = gr.TabbedInterface([functionApp, documentationApp, creatorsTab], ["Welcome", "Documentation", "Creators"], theme=theme)
     mainApp.queue()
     mainApp.launch()
