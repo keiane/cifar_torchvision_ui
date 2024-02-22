@@ -182,7 +182,37 @@ def main(drop_type, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, sc
             imgs, labels = next(dataiter)
             normalized_imgs = (imgs-imgs.min())/(imgs.max()-imgs.min())
             atk = torchattacks.PGD(net, eps=0.00015, alpha=0.0000000000000001, steps=7)
-            if attack == "Yes":
+
+            if attack == "PGD":
+                if normalized_imgs is None:
+                    print("error occured")
+                else:
+                    print(torch.std(normalized_imgs))
+                    PGD_atk.set_normalization_used(mean = torch.mean(normalized_imgs,axis=[0,2,3]), std=torch.std(normalized_imgs,axis=[0,2,3])/1.125)
+                    adv_images = PGD_atk(imgs, labels)
+                    fig_name = imshow(adv_images[0], fig_name = f'figures/PGD_attack{adv_num}.png')
+                    attack_fig = Image.open(fig_name)
+                    for i in range(1): # generate 1 image per epoch
+                        img_list3.append(attack_fig)
+                        adv_num = adv_num + 1
+
+
+            if attack == "FGSM":
+                if normalized_imgs is None:
+                    print("error occured")
+                else:
+                    adv_images = FGSM_atk(imgs, labels)
+                    fig_name = imshow(adv_images[0], fig_name = f'figures/FGSM_attack{adv_num}.png')
+                    attack_fig = Image.open(fig_name)
+                    fig_name = imshow(imgs[0], fig_name = f'figures/Normal_Image{adv_num}.png')
+                    attack_fig = Image.open(fig_name)
+                    for i in range(1): # generate 1 image per epoch
+                        img_list3.append(attack_fig)
+                        adv_num = adv_num + 1
+
+
+
+            if attack == "Both":
                 if normalized_imgs is None:
                     print("error occured")
                 else:
@@ -201,6 +231,7 @@ def main(drop_type, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, sc
                     for i in range(1): # generate 1 image per epoch
                         img_list3.append(attack_fig)
                         adv_num = adv_num + 1
+
             for i in range(10): # generate 10 images per epoch
                 gradio_imgs = transforms.functional.to_pil_image(normalized_imgs[i])
                 raw_image_list.append(gradio_imgs) 
@@ -355,6 +386,9 @@ optimizers = ["SGD","Adam"]
 # Scheduler names
 schedulers = ["None","CosineAnnealingLR","ReduceLROnPlateau","StepLR"]
 
+#attack names
+attack_names = ["None", "FGSM", "PGD", "Both"]
+
 ## Main app for functionality
 with gr.Blocks(css=".caption-label {display:none}") as functionApp:
     with gr.Row():
@@ -378,7 +412,7 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
     with gr.Row():
         use_sigma = gr.Radio(["Yes","No"], visible=False, label="Use Gaussian Noise?", value="No")
         sigma_sldr = gr.Slider(visible=False, label="Gaussian Noise", minimum=0, maximum=1, value=0, step=0.1, info="The sigma value of the gaussian noise eqaution. A value of 0 disables gaussian noise.")
-        adv_attack = gr.Radio(["Yes","No"], visible=False, label="Use Adversarial Attacks?", value="No")
+        adv_attack = gr.Dropdown(choices=attack_names, visible=False, label="Adversarial Attack Type", value="None")
     with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
