@@ -117,13 +117,12 @@ def documentation_import():
         markdown_content = file.read()
     return markdown_content
 
-# creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
-# def creators_import():
-#     all_content = {}
-#     for creator in creators_array:
-#         markdown_creator_path = os.path.join('creators', creator, f'markdown_{creator}.md')
-#         with open(markdown_creator_path, 'r') as file:
-#             markdown_content = file.read()
-#             all_content[creator] = markdown_content
-    
-#     return all_content
+creators_array = ["henry", "luke", "keiane", "evelyn", "ethan", "matt"]
+def creators_import():
+    all_content = {}
+    for creator in creators_array:
+        markdown_creator_path = os.path.join('creators', creator, f'markdown_{creator}.md')
+        with open(markdown_creator_path, 'r') as file:
+            markdown_content = file.read()
+            all_content[creator] = markdown_content   
+    return all_content
