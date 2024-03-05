@@ -2,4 +2,5 @@ models/__pycache__/
 __pycache__/
 wandb/
 data/
+figures/*
 .DS_Store

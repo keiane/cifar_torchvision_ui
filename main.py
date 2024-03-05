@@ -320,6 +320,10 @@ def train(epoch, net, trainloader, device, optimizer, criterion, sigma, progress
 
 
 ### TESTING
+    
+epochs_Plt = []
+loss_Plt = []
+accuracy_Plt = []
 
 def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
     try:
@@ -347,8 +351,13 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
                 iter_prog = iter_prog + 1 # Iterating iteration amount
                 progress(iter_prog/iterations, desc=f"Testing Epoch {epoch}", total=iterations)
 
+            # Log key metrics to Weights and Biases
             wandb.log({'epoch': epoch+1, 'loss': test_loss})
             wandb.log({"acc": correct/total})
+            # Also store key metric values for plotting in Gradio
+            epochs_Plt.append(epoch + 1)
+            loss_Plt.append(test_loss)
+            accuracy_Plt.append(correct / total)
 
                 # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 #              % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -377,6 +386,38 @@ def test(epoch, net, testloader, device, criterion, progress = gr.Progress()):
 
 
 
+# Create plots for accuracy and loss to be displayed in Gradio
+
+def plot_loss():
+    # Convert the arrays into a DataFrame for easy plotting with gr.LinePlot
+    lossPlotData = pd.DataFrame({"epoch": epochs_Plt, "loss": loss_Plt})
+    # Return a gr.LinePlot component configured to plot the DataaFrame
+    return gr.LinePlot(
+        lossPlotData,
+        x="epoch",
+        y="loss",
+        title="Loss Over Time",
+        x_title="Epoch",
+        y_title="Loss",
+        height=300,
+        width=500,
+    )
+def plot_accuracy():
+    # Convert the arrays into a DataFrame for easy plotting with gr.LinePlot
+    lossPlotData = pd.DataFrame({"epoch": epochs_Plt, "accuracy": accuracy_Plt})
+    # Return a gr.LinePlot component configured to plot the DataaFrame
+    return gr.LinePlot(
+        lossPlotData,
+        x="epoch",
+        y="accuracy",
+        title="Accuracy Over Time",
+        x_title="Epoch",
+        y_title="Accuracy",
+        height=300,
+        width=500,
+    )
+
+
 # Store dictionary keys into list for dropdown menu choices
 names = list(models_dict.keys())
 
@@ -397,11 +438,11 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         gr.Markdown("## Parameters")
     with gr.Row():
         inp = gr.Dropdown(choices=names, label="Training Model", value="ResNet18", info="Choose one of 13 common models provided in the dropdown to use for training.")
-        username = gr.Textbox(label="Weights and Biases", info="Enter your username or team name from the Weights and Biases API.")
+        # Engineering_clinic set as default team name for WANDB (remove if site is to be published)
+        username = gr.Textbox(label="Weights and Biases", info="Enter your username or team name from the Weights and Biases API.", value="engineering_clinic")
         epochs_sldr = gr.Slider(label="Number of Epochs", minimum=1, maximum=100, step=1, value=1, info="How many times the model will see the entire dataset during trianing.")
         with gr.Column():
-            setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic")
-            btn = gr.Button("Run")        
+            setting_radio = gr.Radio(["Basic", "Advanced"], label="Settings", value="Basic") 
     with gr.Row():
         optimizer = gr.Dropdown(visible=False, label="Optimizer", choices=optimizers, value="SGD", info="The optimization algorithm used to minimize the loss function during training.")
         scheduler = gr.Dropdown(visible=False, label="Scheduler", choices=schedulers, value="CosineAnnealingLR", info="The scheduler used to iteratively alter learning rate.")
@@ -414,11 +455,14 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         sigma_sldr = gr.Slider(visible=False, label="Gaussian Noise", minimum=0, maximum=1, value=0, step=0.1, info="The sigma value of the gaussian noise eqaution. A value of 0 disables gaussian noise.")
         adv_attack = gr.Dropdown(choices=attack_names, visible=False, label="Adversarial Attack Type", value="None")
     with gr.Row():
+        btn = gr.Button("Run")
+    with gr.Row():
         gr.Markdown("## Training Results")
     with gr.Row():
-        accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
         with gr.Column():
+            accuracy = gr.Textbox(label = "Accuracy", info="The validation accuracy of the trained model (accuracy evaluated on testing data).")
             showpics = gr.Radio(["Yes","No"], visible = True, label = "Show all pictures?", value = "No")
+        with gr.Column():
             pics = gr.Gallery(preview=False, selected_index=0, object_fit='contain', label="Testing Images")
             allpics = gr.Gallery(preview=True, selected_index=0, object_fit='contain', label="Full Testing Images",visible = False)
             showpics.change(fn=togglepicsettings, inputs=[showpics], outputs = [allpics, pics])
@@ -429,6 +473,13 @@ with gr.Blocks(css=".caption-label {display:none}") as functionApp:
         use_sigma.change(fn=gaussian, inputs=use_sigma, outputs=[sigma_sldr, gaussian_pics])
         adv_attack.change(fn=adversarial, inputs=adv_attack, outputs=attack_pics)
         btn.click(fn=main, inputs=[inp, username, epochs_sldr, optimizer, sigma_sldr, adv_attack, scheduler], outputs=[accuracy, pics, allpics, gaussian_pics, attack_pics])
+    with gr.Row():
+        with gr.Column():
+            accuracyLossOut = gr.LinePlot()
+            accuracy.change(fn=plot_accuracy, inputs=[], outputs=accuracyLossOut)
+        with gr.Column():
+            lossPlotOut = gr.LinePlot()
+            accuracy.change(fn=plot_loss, inputs=[], outputs=lossPlotOut)
 
 
 with gr.Blocks() as creatorsApp:
